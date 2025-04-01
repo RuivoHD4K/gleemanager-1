@@ -13,7 +13,6 @@ const Login = ({ setIsAuthenticated }) => {
     setError("");
 
     try {
-      // Use POST to authenticate user instead of GET
       const response = await fetch("http://localhost:5000/authenticate", {
         method: "POST",
         headers: {
@@ -29,9 +28,11 @@ const Login = ({ setIsAuthenticated }) => {
       }
       
       if (data.authenticated) {
-        // Store authentication status in localStorage
+        // Store token and user info in localStorage
+        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("userEmail", data.user.email);
+        localStorage.setItem("userId", data.user.userId);
         localStorage.setItem("isAuthenticated", "true");
-        localStorage.setItem("userEmail", email);
         
         // Update authentication state
         setIsAuthenticated(true);
@@ -50,6 +51,12 @@ const Login = ({ setIsAuthenticated }) => {
     
     if (!email || !password) {
       setError("Email and password are required");
+      return;
+    }
+    
+    // Basic password validation
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long");
       return;
     }
     
@@ -75,9 +82,13 @@ const Login = ({ setIsAuthenticated }) => {
         throw new Error(data.error || "Failed to create user");
       }
       
-      // Auto login after sign up
+      // Store token and user info
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("userEmail", data.user.email);
+      localStorage.setItem("userId", data.user.userId);
       localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("userEmail", email);
+      
+      // Update authentication state
       setIsAuthenticated(true);
     } catch (err) {
       setError("Sign up failed: " + err.message);

@@ -4,20 +4,49 @@ import Login from "./pages/Login";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   // Check if user is already logged in on component mount
   useEffect(() => {
-    const authStatus = localStorage.getItem("isAuthenticated");
-    if (authStatus === "true") {
-      setIsAuthenticated(true);
-    }
+    const checkAuth = async () => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        // You could validate the token here with your server
+        setIsAuthenticated(true);
+      }
+      setLoading(false);
+    };
+    
+    checkAuth();
   }, []);
   
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("userEmail");
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        // Call the logout endpoint
+        await fetch("http://localhost:5000/logout", {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Clear all auth data from localStorage
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("isAuthenticated");
+      setIsAuthenticated(false);
+    }
   };
+
+  if (loading) {
+    return <div className="loading">Loading...</div>;
+  }
 
   return (
     <Router>
@@ -67,21 +96,36 @@ function UsersList() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:5000/users")
-      .then(response => {
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const response = await fetch("http://localhost:5000/users", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        
         if (!response.ok) {
+          if (response.status === 401) {
+            // Handle unauthorized (invalid/expired token)
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("isAuthenticated");
+            window.location.href = "/login";
+            throw new Error("Your session has expired. Please log in again.");
+          }
           throw new Error("Failed to fetch users");
         }
-        return response.json();
-      })
-      .then(data => {
+        
+        const data = await response.json();
         setUsers(data);
-        setLoading(false);
-      })
-      .catch(err => {
+      } catch (err) {
         setError(err.message);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    
+    fetchUsers();
   }, []);
 
   if (loading) return <div>Loading users...</div>;
@@ -95,7 +139,7 @@ function UsersList() {
       ) : (
         <ul>
           {users.map((user, index) => (
-            <li key={index}>
+            <li key={user.userId || index}>
               <strong>Email:</strong> {user.email} | <strong>Created:</strong> {new Date(user.createdAt).toLocaleString()}
             </li>
           ))}

@@ -1,12 +1,36 @@
 const http = require("http");
-const { PutCommand, ScanCommand, GetCommand, QueryCommand } = require("@aws-sdk/lib-dynamodb");
+const { PutCommand, ScanCommand } = require("@aws-sdk/lib-dynamodb");
 const dynamoDB = require("./database");
+const crypto = require("crypto"); // Node.js built-in encryption library
+const { v4: uuidv4 } = require("uuid"); // You'll need to install this: npm install uuid
+
+// Encryption functions
+function generateSalt() {
+  return crypto.randomBytes(16).toString("hex");
+}
+
+function hashPassword(password, salt) {
+  return crypto.pbkdf2Sync(password, salt, 10000, 64, "sha512").toString("hex");
+}
+
+function verifyPassword(storedHash, storedSalt, providedPassword) {
+  const hash = hashPassword(providedPassword, storedSalt);
+  return storedHash === hash;
+}
+
+// Generate a secure token for sessions
+function generateToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+// Simple in-memory token store (replace with a proper database in production)
+const tokenStore = new Map();
 
 const server = http.createServer((req, res) => {
   // Set CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   // Handle preflight requests
   if (req.method === "OPTIONS") {
@@ -14,11 +38,20 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
+  // Extract authorization token from headers
+  const authHeader = req.headers.authorization;
+  let token = null;
+  
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.substring(7);
+  }
+
   // Root endpoint
   if (req.method === "GET" && req.url === "/") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ message: "Backend is running!" }));
   } 
+  
   // Authentication endpoint
   else if (req.method === "POST" && req.url === "/authenticate") {
     let body = "";
@@ -56,12 +89,24 @@ const server = http.createServer((req, res) => {
         
         const user = result.Items[0];
         
-        // Check if password matches
-        if (user.password === credentials.password) {
+        // Verify the password using the stored hash and salt
+        if (verifyPassword(user.passwordHash, user.salt, credentials.password)) {
+          // Generate a new token
+          const token = generateToken();
+          const userId = user.userId || user.email;
+          
+          // Store the token with the user ID and expiration time (24 hours)
+          tokenStore.set(token, {
+            userId,
+            expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+          });
+          
           res.writeHead(200, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ 
             authenticated: true,
+            token,
             user: {
+              userId,
               email: user.email,
               createdAt: user.createdAt
             }
@@ -80,6 +125,7 @@ const server = http.createServer((req, res) => {
       }
     });
   }
+  
   // Create a new user
   else if (req.method === "POST" && req.url === "/users") {
     let body = "";
@@ -89,10 +135,10 @@ const server = http.createServer((req, res) => {
 
     req.on("end", async () => {
       try {
-        const user = JSON.parse(body);
+        const userData = JSON.parse(body);
         
         // Validate user input
-        if (!user.email || !user.password) {
+        if (!userData.email || !userData.password) {
           res.writeHead(400, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "Email and password are required" }));
         }
@@ -102,7 +148,7 @@ const server = http.createServer((req, res) => {
           TableName: "Users",
           FilterExpression: "email = :email",
           ExpressionAttributeValues: {
-            ":email": user.email
+            ":email": userData.email
           }
         });
         
@@ -114,9 +160,25 @@ const server = http.createServer((req, res) => {
         }
         
         // Add timestamp if not provided
-        if (!user.createdAt) {
-          user.createdAt = new Date().toISOString();
+        if (!userData.createdAt) {
+          userData.createdAt = new Date().toISOString();
         }
+        
+        // Generate unique user ID
+        const userId = uuidv4();
+        
+        // Generate salt and hash the password
+        const salt = generateSalt();
+        const passwordHash = hashPassword(userData.password, salt);
+        
+        // Create the user object (without the plain password)
+        const user = {
+          userId,
+          email: userData.email,
+          passwordHash,
+          salt,
+          createdAt: userData.createdAt
+        };
         
         const params = new PutCommand({
           TableName: "Users",
@@ -125,10 +187,22 @@ const server = http.createServer((req, res) => {
 
         await dynamoDB.send(params);
 
+        // Generate a token for immediate login
+        const token = generateToken();
+        tokenStore.set(token, {
+          userId,
+          expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+        });
+
         res.writeHead(201, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ 
           message: "User created successfully",
-          user: { email: user.email, createdAt: user.createdAt }
+          token,
+          user: { 
+            userId,
+            email: user.email,
+            createdAt: user.createdAt 
+          }
         }));
       } catch (err) {
         console.error("Error creating user:", err);
@@ -137,15 +211,22 @@ const server = http.createServer((req, res) => {
       }
     });
   } 
-  // Get all users
+  
+  // Get all users (protected route)
   else if (req.method === "GET" && req.url === "/users") {
+    // Check if token is valid
+    if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Unauthorized" }));
+    }
+
     const params = new ScanCommand({ TableName: "Users" });
 
     dynamoDB.send(params)
       .then((data) => {
-        // Remove password field from response for security
+        // Remove sensitive fields from response
         const safeUsers = (data.Items || []).map(user => {
-          const { password, ...safeUser } = user;
+          const { passwordHash, salt, ...safeUser } = user;
           return safeUser;
         });
         
@@ -158,12 +239,35 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: err.message }));
       });
   }
+  
+  // Logout endpoint
+  else if (req.method === "DELETE" && req.url === "/logout") {
+    if (token && tokenStore.has(token)) {
+      tokenStore.delete(token);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "Logged out successfully" }));
+    }
+    
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "No active session" }));
+  }
+  
   // 404 Not Found for all other routes
   else {
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ message: "Not Found" }));
   }
 });
+
+// Clean up expired tokens periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, session] of tokenStore.entries()) {
+    if (session.expires < now) {
+      tokenStore.delete(token);
+    }
+  }
+}, 3600000); // Run every hour
 
 // Start the server
 const PORT = process.env.PORT || 5000;
