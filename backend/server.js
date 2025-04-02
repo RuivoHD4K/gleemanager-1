@@ -29,7 +29,7 @@ const tokenStore = new Map();
 const server = http.createServer((req, res) => {
   // Set CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS, DELETE");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   // Handle preflight requests
@@ -37,6 +37,9 @@ const server = http.createServer((req, res) => {
     res.writeHead(204);
     return res.end();
   }
+
+  // Log all incoming requests for debugging
+  console.log(`${req.method} ${req.url}`);
 
   // Extract authorization token from headers
   const authHeader = req.headers.authorization;
@@ -108,7 +111,8 @@ const server = http.createServer((req, res) => {
             user: {
               userId,
               email: user.email,
-              createdAt: user.createdAt
+              createdAt: user.createdAt,
+              role: user.role || "user" // Include the role in the response
             }
           }));
         } else {
@@ -172,12 +176,14 @@ const server = http.createServer((req, res) => {
         const passwordHash = hashPassword(userData.password, salt);
         
         // Create the user object (without the plain password)
+        // Add default role as "user"
         const user = {
           userId,
           email: userData.email,
           passwordHash,
           salt,
-          createdAt: userData.createdAt
+          createdAt: userData.createdAt,
+          role: "user" // Default role for new users
         };
         
         const params = new PutCommand({
@@ -201,7 +207,8 @@ const server = http.createServer((req, res) => {
           user: { 
             userId,
             email: user.email,
-            createdAt: user.createdAt 
+            createdAt: user.createdAt,
+            role: user.role // Include role in the response
           }
         }));
       } catch (err) {
@@ -250,6 +257,158 @@ const server = http.createServer((req, res) => {
     
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ message: "No active session" }));
+  }
+
+  // Update a user - FIXED VERSION
+  else if (req.method === "PUT" && req.url.match(/^\/users\/[^\/]+$/)) {
+    // Extract userId from URL
+    const userId = req.url.split("/")[2];
+    console.log("Update user request for userId:", userId);
+    
+    // Check if token is valid
+    if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+      console.log("Authorization failed for token:", token);
+      res.writeHead(401, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Unauthorized" }));
+    }
+    
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+
+    req.on("end", async () => {
+      try {
+        const userData = JSON.parse(body);
+        console.log("Update user data received:", userData);
+        
+        // First, get the existing user
+        const getParams = new ScanCommand({
+          TableName: "Users",
+          FilterExpression: "userId = :userId",
+          ExpressionAttributeValues: {
+            ":userId": userId
+          }
+        });
+        
+        console.log("Looking for user with ID:", userId);
+        const userResult = await dynamoDB.send(getParams);
+        
+        if (!userResult.Items || userResult.Items.length === 0) {
+          console.log("User not found with ID:", userId);
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "User not found" }));
+        }
+        
+        const existingUser = userResult.Items[0];
+        console.log("Found existing user:", existingUser.email);
+        
+        // Update only allowed fields
+        const updatedUser = {
+          ...existingUser,
+          email: userData.email || existingUser.email,
+          username: userData.username || existingUser.username,
+          role: userData.role || existingUser.role
+        };
+        
+        console.log("Updating user to:", updatedUser);
+        const updateParams = new PutCommand({
+          TableName: "Users",
+          Item: updatedUser
+        });
+        
+        await dynamoDB.send(updateParams);
+        console.log("User updated successfully");
+        
+        // Remove sensitive fields from response
+        const { passwordHash, salt, ...safeUser } = updatedUser;
+        
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(safeUser));
+      } catch (err) {
+        console.error("Error updating user:", err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+  }
+  
+  // Update user password - FIXED VERSION
+  else if (req.method === "PUT" && req.url.match(/^\/users\/[^\/]+\/password$/)) {
+    // Extract userId from URL
+    const userId = req.url.split("/")[2];
+    console.log("Password update request for userId:", userId);
+    
+    // Check if token is valid
+    if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+      console.log("Authorization failed for token:", token);
+      res.writeHead(401, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Unauthorized" }));
+    }
+    
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+
+    req.on("end", async () => {
+      try {
+        const passwordData = JSON.parse(body);
+        
+        if (!passwordData.password) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Password is required" }));
+        }
+        
+        // Get the existing user
+        const getParams = new ScanCommand({
+          TableName: "Users",
+          FilterExpression: "userId = :userId",
+          ExpressionAttributeValues: {
+            ":userId": userId
+          }
+        });
+        
+        console.log("Looking for user with ID:", userId);
+        const userResult = await dynamoDB.send(getParams);
+        
+        if (!userResult.Items || userResult.Items.length === 0) {
+          console.log("User not found with ID:", userId);
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "User not found" }));
+        }
+        
+        const user = userResult.Items[0];
+        console.log("Found user for password update:", user.email);
+        
+        // Generate new salt and hash for the password
+        const salt = generateSalt();
+        const passwordHash = hashPassword(passwordData.password, salt);
+        
+        // Update the user with new password hash and salt
+        const updatedUser = {
+          ...user,
+          passwordHash,
+          salt
+        };
+        
+        console.log("Updating password for user:", user.email);
+        const updateParams = new PutCommand({
+          TableName: "Users",
+          Item: updatedUser
+        });
+        
+        await dynamoDB.send(updateParams);
+        console.log("Password updated successfully");
+        
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Password updated successfully" }));
+      } catch (err) {
+        console.error("Error updating password:", err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
   }
   
   // 404 Not Found for all other routes

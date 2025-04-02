@@ -32,6 +32,7 @@ const Login = ({ setIsAuthenticated }) => {
         localStorage.setItem("authToken", data.token);
         localStorage.setItem("userEmail", data.user.email);
         localStorage.setItem("userId", data.user.userId);
+        localStorage.setItem("userRole", data.user.role || "user"); // Store user role
         localStorage.setItem("isAuthenticated", "true");
         
         // Update authentication state
@@ -86,6 +87,7 @@ const Login = ({ setIsAuthenticated }) => {
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("userEmail", data.user.email);
       localStorage.setItem("userId", data.user.userId);
+      localStorage.setItem("userRole", data.user.role || "user"); // Store user role
       localStorage.setItem("isAuthenticated", "true");
       
       // Update authentication state
@@ -100,7 +102,11 @@ const Login = ({ setIsAuthenticated }) => {
   return (
     <div className="login-container">
       <div className="login-box">
-        <h2>Login to GleeManager</h2>
+        <div className="app-logo">
+          <h1>GleeManager</h1>
+          <p>Management made simple</p>
+        </div>
+        
         {error && <p className="error-message">{error}</p>}
         <form onSubmit={handleLogin}>
           <input

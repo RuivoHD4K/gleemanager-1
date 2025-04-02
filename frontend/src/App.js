@@ -1,9 +1,12 @@
-import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Login from "./pages/Login";
+import UserManagement from "./pages/UserManagement";
+import "./App.css"; // Make sure to create this file
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState("");
   const [loading, setLoading] = useState(true);
   
   // Check if user is already logged in on component mount
@@ -11,8 +14,8 @@ function App() {
     const checkAuth = async () => {
       const token = localStorage.getItem("authToken");
       if (token) {
-        // You could validate the token here with your server
         setIsAuthenticated(true);
+        setUserRole(localStorage.getItem("userRole") || "user");
       }
       setLoading(false);
     };
@@ -39,8 +42,10 @@ function App() {
       localStorage.removeItem("authToken");
       localStorage.removeItem("userEmail");
       localStorage.removeItem("userId");
+      localStorage.removeItem("userRole");
       localStorage.removeItem("isAuthenticated");
       setIsAuthenticated(false);
+      setUserRole("");
     }
   };
 
@@ -65,10 +70,9 @@ function App() {
           <Route 
             path="/" 
             element={isAuthenticated ? (
-              <div className="home-page">
-                <h1>Home Page</h1>
-                <UsersList />
-              </div>
+              userRole === "admin" ? 
+                <AdminHomePage /> : 
+                <UserHomePage />
             ) : (
               <Navigate to="/login" replace />
             )} 
@@ -83,9 +87,118 @@ function App() {
               )
             } 
           />
+          <Route 
+            path="/user-management" 
+            element={
+              isAuthenticated && userRole === "admin" ? (
+                <UserManagement />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+            />
         </Routes>
       </div>
     </Router>
+  );
+}
+
+// Admin Home Page Component
+function AdminHomePage() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="home-page admin-home">
+      <div className="dashboard-header">
+        <h1>Admin Dashboard</h1>
+        <div className="dashboard-actions">
+          <button className="action-btn" onClick={() => navigate("/user-management")}>Manage Users</button>
+          <button className="action-btn">System Settings</button>
+        </div>
+      </div>
+      
+      <div className="dashboard-grid">
+        <div className="dashboard-card stats-card">
+          <h3>System Statistics</h3>
+          <div className="stats-content">
+            <div className="stat-item">
+              <span className="stat-label">Total Users</span>
+              <span className="stat-value">243</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Active Today</span>
+              <span className="stat-value">46</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">New This Week</span>
+              <span className="stat-value">12</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="dashboard-card">
+          <h3>Recent Activity</h3>
+          <ul className="activity-list">
+            <li>User john@example.com logged in (2 min ago)</li>
+            <li>New user registered: jane@example.com (15 min ago)</li>
+            <li>Password reset for bob@example.com (1 hour ago)</li>
+          </ul>
+        </div>
+      </div>
+      
+      <UsersList />
+      
+      <div className="role-indicator admin-role">
+        Admin Access
+      </div>
+    </div>
+  );
+}
+
+// User Home Page Component
+function UserHomePage() {
+  return (
+    <div className="home-page user-home">
+      <div className="dashboard-header">
+        <h1>Welcome to GleeManager</h1>
+        <div className="dashboard-actions">
+          <button className="action-btn">My Profile</button>
+          <button className="action-btn">Help</button>
+        </div>
+      </div>
+      
+      <div className="dashboard-grid">
+        <div className="dashboard-card welcome-card">
+          <h3>Getting Started</h3>
+          <p>Welcome to GleeManager! Here are some things you can do:</p>
+          <ul>
+            <li>View your profile and update settings</li>
+            <li>Connect with other users</li>
+            <li>Explore the system features</li>
+          </ul>
+        </div>
+        
+        <div className="dashboard-card">
+          <h3>Your Stats</h3>
+          <div className="stats-content">
+            <div className="stat-item">
+              <span className="stat-label">Account Age</span>
+              <span className="stat-value">3 days</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Last Login</span>
+              <span className="stat-value">Today</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <UsersList />
+      
+      <div className="role-indicator user-role">
+        Standard User
+      </div>
+    </div>
   );
 }
 
@@ -128,8 +241,8 @@ function UsersList() {
     fetchUsers();
   }, []);
 
-  if (loading) return <div>Loading users...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return <div className="loading-indicator">Loading users...</div>;
+  if (error) return <div className="error-message">Error: {error}</div>;
 
   return (
     <div className="users-list">
@@ -137,13 +250,28 @@ function UsersList() {
       {users.length === 0 ? (
         <p>No users found</p>
       ) : (
-        <ul>
-          {users.map((user, index) => (
-            <li key={user.userId || index}>
-              <strong>Email:</strong> {user.email} | <strong>Created:</strong> {new Date(user.createdAt).toLocaleString()}
-            </li>
-          ))}
-        </ul>
+        <div className="users-table-container">
+          <table className="users-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Created</th>
+                <th>Role</th>
+                <th>User ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user, index) => (
+                <tr key={user.userId || index}>
+                  <td>{user.email}</td>
+                  <td>{new Date(user.createdAt).toLocaleString()}</td>
+                  <td>{user.role || "user"}</td>
+                  <td className="user-id">{user.userId}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
