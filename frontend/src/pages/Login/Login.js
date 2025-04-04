@@ -1,16 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Login.css";
 
-const Login = ({ setIsAuthenticated }) => {
+const Login = ({ setIsAuthenticated, setUserRole }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Check if we have a saved account to autofill
+  useEffect(() => {
+    const switchAccount = sessionStorage.getItem('switchToAccount');
+    if (switchAccount) {
+      try {
+        const accountData = JSON.parse(switchAccount);
+        setEmail(accountData.email || '');
+        // Don't auto-fill password for security reasons
+        // Just clear the session storage
+        sessionStorage.removeItem('switchToAccount');
+      } catch (e) {
+        console.error('Error parsing account data', e);
+        sessionStorage.removeItem('switchToAccount');
+      }
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccessMessage("");
 
     try {
       const response = await fetch("http://localhost:5000/authenticate", {
@@ -28,16 +47,23 @@ const Login = ({ setIsAuthenticated }) => {
       }
       
       if (data.authenticated) {
+        const userRole = data.user.role || "user";
+        
         // Store token and user info in localStorage
         localStorage.setItem("authToken", data.token);
         localStorage.setItem("userEmail", data.user.email);
         localStorage.setItem("userId", data.user.userId);
-        localStorage.setItem("userRole", data.user.role || "user"); // Store user role
-        localStorage.setItem("username", data.user.username || data.user.email.split('@')[0]); // Store username or use email prefix
+        localStorage.setItem("userRole", userRole);
+        localStorage.setItem("username", data.user.username || data.user.email.split('@')[0]);
         localStorage.setItem("isAuthenticated", "true");
         
-        // Update authentication state
-        setIsAuthenticated(true);
+        setSuccessMessage("Login successful! Redirecting...");
+        
+        // Update authentication state AND user role state
+        setTimeout(() => {
+          setIsAuthenticated(true);
+          setUserRole(userRole);
+        }, 1000);
       } else {
         setError("Invalid email or password");
       }
@@ -64,6 +90,7 @@ const Login = ({ setIsAuthenticated }) => {
     
     setLoading(true);
     setError("");
+    setSuccessMessage("");
 
     try {
       const response = await fetch("http://localhost:5000/users", {
@@ -84,16 +111,23 @@ const Login = ({ setIsAuthenticated }) => {
         throw new Error(data.error || "Failed to create user");
       }
       
+      const userRole = data.user.role || "user";
+      
       // Store token and user info
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("userEmail", data.user.email);
       localStorage.setItem("userId", data.user.userId);
-      localStorage.setItem("userRole", data.user.role || "user"); // Store user role
-      localStorage.setItem("username", data.user.username || data.user.email.split('@')[0]); // Store username or use email prefix
+      localStorage.setItem("userRole", userRole);
+      localStorage.setItem("username", data.user.username || data.user.email.split('@')[0]);
       localStorage.setItem("isAuthenticated", "true");
       
-      // Update authentication state
-      setIsAuthenticated(true);
+      setSuccessMessage("Account created successfully! Redirecting...");
+      
+      // Update authentication state AND user role state
+      setTimeout(() => {
+        setIsAuthenticated(true);
+        setUserRole(userRole);
+      }, 1000);
     } catch (err) {
       setError("Sign up failed: " + err.message);
     } finally {
@@ -109,24 +143,30 @@ const Login = ({ setIsAuthenticated }) => {
           <p>Management made simple</p>
         </div>
         
-        {error && <p className="error-message">{error}</p>}
+        {error && <div className="notification error">{error}</div>}
+        {successMessage && <div className="notification success">{successMessage}</div>}
+        
         <form onSubmit={handleLogin}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={loading}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={loading}
-            required
-          />
+          <div className="form-group">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              required
+            />
+          </div>
           <div className="button-group">
             <button type="submit" disabled={loading}>
               {loading ? "Processing..." : "Login"}

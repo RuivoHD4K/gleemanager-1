@@ -1,4 +1,9 @@
 /* Sidebar.css */
+:root {
+  --sidebar-transition: 0.3s ease;
+  --text-fade-duration: 0.2s;
+}
+
 .sidebar {
   width: var(--sidebar-width);
   background-color: white;
@@ -8,10 +13,11 @@
   top: var(--header-height);
   left: 0;
   z-index: 100;
-  transition: width var(--transition);
+  transition: width var(--sidebar-transition);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  overflow-x: hidden;
 }
 
 .sidebar.collapsed {
@@ -24,15 +30,16 @@
 }
 
 .nav-link {
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 0.8rem 1.5rem;
   color: var(--text-color);
   text-decoration: none;
-  transition: var(--transition);
+  transition: background-color 0.2s ease, color 0.2s ease;
   border-left: 3px solid transparent;
   white-space: nowrap;
   overflow: hidden;
+  height: 40px; /* Fixed height for consistency */
 }
 
 .nav-link:hover {
@@ -45,25 +52,46 @@
   color: var(--primary-color);
 }
 
+.nav-link.active .nav-icon svg {
+  stroke: var(--primary-color);
+}
+
+/* Fixed icon container for stable positioning */
 .nav-icon {
-  margin-right: 1rem;
-  font-size: 1.2rem;
-  min-width: 24px;
-  text-align: center;
+  height: 100%;
+  width: 53px; /* Changed to 53px as requested */
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+  position: relative;
 }
 
-/* Hide text when sidebar is collapsed */
+.nav-icon svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: stroke 0.2s ease;
+}
+
+.nav-text {
+  flex: 1;
+  padding-right: 1.5rem;
+  transition: opacity var(--text-fade-duration) ease;
+  opacity: 1;
+  max-width: calc(var(--sidebar-width) - var(--sidebar-collapsed-width));
+}
+
+/* Properly handle text transitions for both directions */
+.sidebar .nav-text {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--text-fade-duration) ease, visibility 0s linear 0s;
+}
+
 .sidebar.collapsed .nav-text {
-  display: none;
-}
-
-.sidebar.collapsed .nav-link {
-  padding: 0.8rem;
-  justify-content: center;
-}
-
-.sidebar.collapsed .nav-icon {
-  margin-right: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--text-fade-duration) ease, visibility 0s linear var(--text-fade-duration);
 }
 
 .sidebar-footer {
@@ -72,6 +100,7 @@
   text-align: center;
   color: #666;
   font-size: 0.8rem;
+  transition: padding var(--sidebar-transition);
 }
 
 .sidebar.collapsed .sidebar-footer {
@@ -79,8 +108,16 @@
 }
 
 .app-version {
-  overflow: hidden;
   white-space: nowrap;
+  overflow: hidden;
+  text-align: center;
+  transition: opacity var(--text-fade-duration) ease;
+}
+
+.sidebar.collapsed .app-version .nav-text {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--text-fade-duration) ease, visibility 0s linear var(--text-fade-duration);
 }
 
 /* Responsive adjustments */
@@ -90,16 +127,8 @@
   }
   
   .sidebar .nav-text {
-    display: none;
-  }
-  
-  .sidebar .nav-link {
-    padding: 0.8rem;
-    justify-content: center;
-  }
-  
-  .sidebar .nav-icon {
-    margin-right: 0;
+    opacity: 0;
+    visibility: hidden;
   }
   
   .sidebar.collapsed {

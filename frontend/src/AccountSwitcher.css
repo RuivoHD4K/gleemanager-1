@@ -1,0 +1,432 @@
+/* AccountSwitcher.css */
+.account-switcher-container {
+  position: fixed;
+  top: 70px;
+  right: 0;
+  z-index: 9999;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: top 0.1s ease;
+}
+
+.account-switcher-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px 0 0 24px;
+  border: none;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  padding: 0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-right: none;
+}
+
+.account-switcher-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  background-color: #f85444;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.default-avatar {
+  background-color: #999;
+}
+
+.account-dropdown {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  width: 280px;
+  background-color: white;
+  border-radius: 8px 0 0 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-right: none;
+}
+
+.dropdown-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  background-color: #f9f9f9;
+}
+
+.dropdown-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+}
+
+.current-account {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+  background-color: #f5f9ff;
+}
+
+.current-account .avatar {
+  margin-right: 12px;
+}
+
+.account-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.account-name {
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.account-email {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-badge {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.saved-accounts {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 0 0 8px 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px 8px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #eee;
+}
+
+.section-title {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.add-account-btn {
+  background: none;
+  border: none;
+  color: #1976d2;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.add-account-btn:hover {
+  background-color: rgba(25, 118, 210, 0.08);
+}
+
+.accounts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.account-item {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  position: relative;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.account-item:last-child {
+  border-bottom: none;
+}
+
+.account-item:hover {
+  background-color: #f5f5f5;
+}
+
+.account-item .avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  margin-right: 12px;
+}
+
+.account-item .account-info {
+  flex: 1;
+  cursor: pointer;
+  padding-right: 8px;
+}
+
+.menu-toggle {
+  background: none;
+  border: none;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  color: #757575;
+}
+
+.menu-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dots {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Fixed context menu that won't be hidden by scrolling */
+.account-context-menu {
+  position: fixed;
+  width: 160px;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.account-context-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.account-context-menu li {
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+
+.account-context-menu li:hover {
+  background-color: #f5f5f5;
+}
+
+.menu-icon {
+  margin-right: 8px;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.dropdown-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  background-color: #f9f9f9;
+}
+
+.close-btn {
+  padding: 6px 12px;
+  border: none;
+  background-color: #f0f0f0;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 13px;
+}
+
+.close-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* Modal styling */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 380px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f9f9f9;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.modal-close:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.warning-text {
+  color: #f44336;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+  padding: 0 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+  outline: none;
+}
+
+.form-help {
+  font-size: 12px;
+  color: #757575;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid #eee;
+  background-color: #f9f9f9;
+}
+
+.primary-btn,
+.secondary-btn,
+.danger-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  border: none;
+  font-weight: 500;
+}
+
+.primary-btn {
+  background-color: #1976d2;
+  color: white;
+}
+
+.primary-btn:hover {
+  background-color: #1565c0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.secondary-btn {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.secondary-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.danger-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.danger-btn:hover {
+  background-color: #d32f2f;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}

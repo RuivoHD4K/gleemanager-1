@@ -44,8 +44,8 @@ const UsersList = () => {
   if (error) return <div className="error-message">Error: {error}</div>;
 
   return (
-    <div className="users-list">
-      <h2>Users in Database</h2>
+    <div className="dashboard-card">
+      <h3>Users in Database</h3>
       {users.length === 0 ? (
         <p>No users found</p>
       ) : (
@@ -64,7 +64,7 @@ const UsersList = () => {
                 <tr key={user.userId || index}>
                   <td>{user.email}</td>
                   <td>{new Date(user.createdAt).toLocaleString()}</td>
-                  <td>{user.role || "user"}</td>
+                  <td className="user-role-cell">{user.role || "user"}</td>
                   <td className="user-id">{user.userId}</td>
                 </tr>
               ))}

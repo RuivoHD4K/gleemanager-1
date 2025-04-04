@@ -57,9 +57,15 @@
 }
 
 .user-role {
+  display: inline-block;
   font-size: 0.8rem;
   color: #666;
   text-transform: capitalize;
+  background-color: var(--gray-bg);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  margin-top: 0.3rem;
+  max-width: fit-content;
 }
 
 /* User edit form */

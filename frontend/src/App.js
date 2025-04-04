@@ -4,6 +4,7 @@ import Login from "./pages/Login/Login";
 import AdminDashboard from "./pages/Dashboard/AdminDashboard";
 import UserDashboard from "./pages/Dashboard/UserDashboard";
 import UserManagement from "./pages/UserManagement/UserManagement";
+import Profile from "./pages/Profile/Profile";
 import BaseLayout from "./components/Layout/BaseLayout";
 import "./App.css";
 
@@ -64,7 +65,10 @@ function App() {
           path="/login" 
           element={
             !isAuthenticated ? (
-              <Login setIsAuthenticated={setIsAuthenticated} />
+              <Login 
+                setIsAuthenticated={setIsAuthenticated} 
+                setUserRole={setUserRole} // Pass the setUserRole function to Login component
+              />
             ) : (
               <Navigate to="/" replace />
             )
@@ -103,7 +107,7 @@ function App() {
           />
           
           {/* Add more routes as needed */}
-          <Route path="profile" element={<div>Profile Page Coming Soon</div>} />
+          <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<div>Settings Page Coming Soon</div>} />
           <Route path="help" element={<div>Help Page Coming Soon</div>} />
         </Route>

@@ -5,7 +5,7 @@ import "./UserManagement.css";
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [notification, setNotification] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
     email: "",
@@ -59,7 +59,7 @@ const UserManagement = () => {
         setSelectedUser(data[0]);
       }
     } catch (err) {
-      setError(err.message);
+      showNotification(err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ const UserManagement = () => {
       
       setShowPasswordModal(true);
     } catch (err) {
-      setError("Failed to update password: " + err.message);
+      showNotification("Failed to update password: " + err.message, "error");
     }
   };
 
@@ -143,11 +143,19 @@ const UserManagement = () => {
       }
       
       // Show success message
-      setError("User updated successfully!");
-      setTimeout(() => setError(null), 3000);
+      showNotification("User updated successfully!", "success");
     } catch (err) {
-      setError("Failed to update user: " + err.message);
+      showNotification("Failed to update user: " + err.message, "error");
     }
+  };
+
+  const showNotification = (message, type = "info") => {
+    setNotification({ message, type });
+    
+    // Auto-clear notification after 5 seconds
+    setTimeout(() => {
+      setNotification(null);
+    }, 5000);
   };
 
   if (loading) return <div className="loading-indicator">Loading users...</div>;
@@ -158,9 +166,9 @@ const UserManagement = () => {
         <h1>User Management</h1>
       </div>
       
-      {error && (
-        <div className={`notification ${error.includes("successfully") ? "success" : "error"}`}>
-          {error}
+      {notification && (
+        <div className={`notification ${notification.type}`}>
+          {notification.message}
         </div>
       )}
       
@@ -234,12 +242,12 @@ const UserManagement = () => {
               </div>
               
               <div className="form-actions">
-                <button type="submit" className="save-btn">
+                <button type="submit" className="action-btn save-btn">
                   Save Changes
                 </button>
                 <button 
                   type="button" 
-                  className="password-btn"
+                  className="action-btn password-btn"
                   onClick={handleGeneratePassword}
                 >
                   Generate New Password

@@ -1,5 +1,7 @@
 import React from 'react';
 import './BaseLayout.css';
+// Import the Menu and LogOut icons from Lucide React
+import { Menu, LogOut } from 'lucide-react';
 
 const Header = ({ toggleSidebar, isSidebarCollapsed, handleLogout }) => {
   // Get username from localStorage (or use email if username is not available)
@@ -10,16 +12,16 @@ const Header = ({ toggleSidebar, isSidebarCollapsed, handleLogout }) => {
   return (
     <header className="app-header">
       <div className="header-left">
-        <button className="menu-toggle" onClick={toggleSidebar}>
-          <i className="menu-icon">≡</i>
+        <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle sidebar">
+          <Menu size={24} strokeWidth={2} color="white"/>
         </button>
         <h2>GleeManager</h2>
       </div>
       
-      <div className="user-info">
+      <div className="header-right">
         <span className="welcome-text">Welcome, {username}</span>
-        <button className="logout-icon-btn" onClick={handleLogout} title="Logout">
-          <i className="logout-icon">⏻</i>
+        <button className="logout-btn" onClick={handleLogout} title="Logout">
+          <LogOut size={20} strokeWidth={2} />
         </button>
       </div>
     </header>

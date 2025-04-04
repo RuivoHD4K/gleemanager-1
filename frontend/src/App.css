@@ -13,7 +13,7 @@
   --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s ease;
   --sidebar-width: 250px;
-  --sidebar-collapsed-width: 70px;
+  --sidebar-collapsed-width: 60px;
   --header-height: 64px;
 }
 
@@ -66,18 +66,18 @@ body {
 /* Role indicator */
 .role-indicator {
   position: fixed;
-  bottom: 0;
-  right: 0;
-  padding: 0.5rem 1rem;
-  font-size: 0.8rem;
-  font-weight: bold;
+  bottom: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
   color: white;
-  border-top-left-radius: 8px;
-  z-index: 100;
+  z-index: 999;
 }
 
 .admin-role {
-  background-color: var(--primary-dark);
+  background-color: var(--primary-color);
 }
 
 .user-role {
@@ -115,19 +115,6 @@ body {
 }
 
 /* Users List */
-.users-list {
-  background-color: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: var(--card-shadow);
-  margin-bottom: 2rem;
-}
-
-.users-list h2 {
-  margin-bottom: 1rem;
-  color: var(--primary-color);
-}
-
 .users-table-container {
   overflow-x: auto;
 }
@@ -157,6 +144,10 @@ body {
   font-family: monospace;
   font-size: 0.9rem;
   color: #666;
+}
+
+.user-role-cell {
+  text-transform: capitalize;
 }
 
 /* Welcome Card */
@@ -212,9 +203,60 @@ body {
   background-color: var(--primary-dark);
 }
 
+/* Notification styles */
+.notification {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.notification.success {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+}
+
+.notification.error {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+}
+
+.notification.info {
+  background-color: rgba(0, 123, 255, 0.1);
+  color: #0077cc;
+}
+
+/* Page header styling */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  color: var(--primary-dark);
+  font-size: 2rem;
+}
+
+.page-actions {
+  display: flex;
+  gap: 0.8rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  :root {
-    --sidebar-width: 200px;
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-content {
+    grid-template-columns: 1fr 1fr;
   }
 }
