@@ -14,6 +14,13 @@ const UserManagement = () => {
   });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [newUserData, setNewUserData] = useState({
+    email: "",
+    username: "",
+    password: "",
+    role: "user"
+  });
   const navigate = useNavigate();
 
   // Fetch users on component mount
@@ -73,6 +80,14 @@ const UserManagement = () => {
     });
   };
 
+  const handleNewUserInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewUserData({
+      ...newUserData,
+      [name]: value
+    });
+  };
+
   const handleUserSelect = (user) => {
     setSelectedUser(user);
   };
@@ -110,6 +125,71 @@ const UserManagement = () => {
       setShowPasswordModal(true);
     } catch (err) {
       showNotification("Failed to update password: " + err.message, "error");
+    }
+  };
+
+  const handleCreateNewUser = () => {
+    // Reset form data
+    setNewUserData({
+      email: "",
+      username: "",
+      password: generateRandomPassword(), // Generate a random initial password
+      role: "user"
+    });
+    setShowAddUserModal(true);
+  };
+
+  const handleAddNewUser = async (e) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!newUserData.email || !newUserData.password || !newUserData.username) {
+      showNotification("All fields are required", "error");
+      return;
+    }
+    
+    if (newUserData.password.length < 8) {
+      showNotification("Password must be at least 8 characters long", "error");
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch("http://localhost:5000/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          email: newUserData.email,
+          password: newUserData.password,
+          username: newUserData.username,
+          role: newUserData.role,
+          createdAt: new Date().toISOString()
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to create user");
+      }
+      
+      const result = await response.json();
+      
+      // Add new user to state
+      const newUser = result.user;
+      setUsers([...users, newUser]);
+      
+      // Select newly created user
+      setSelectedUser(newUser);
+      
+      setShowAddUserModal(false);
+      showNotification(`User ${newUserData.email} created successfully!`, "success");
+      
+      // Refresh user list
+      fetchUsers();
+    } catch (err) {
+      showNotification("Failed to create user: " + err.message, "error");
     }
   };
 
@@ -164,6 +244,11 @@ const UserManagement = () => {
     <div className="user-management-container">
       <div className="page-header">
         <h1>User Management</h1>
+        <div className="page-actions">
+          <button className="action-btn" onClick={handleCreateNewUser}>
+            + New User
+          </button>
+        </div>
       </div>
       
       {notification && (
@@ -280,6 +365,79 @@ const UserManagement = () => {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {showAddUserModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content">
+            <h3>Add New User</h3>
+            <form onSubmit={handleAddNewUser} className="user-edit-form">
+              <div className="form-group">
+                <label htmlFor="new-email">Email</label>
+                <input
+                  type="email"
+                  id="new-email"
+                  name="email"
+                  value={newUserData.email}
+                  onChange={handleNewUserInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="new-username">Username</label>
+                <input
+                  type="text"
+                  id="new-username"
+                  name="username"
+                  value={newUserData.username}
+                  onChange={handleNewUserInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="new-password">Password</label>
+                <input
+                  type="text" // Text to make it visible
+                  id="new-password"
+                  name="password"
+                  value={newUserData.password}
+                  onChange={handleNewUserInputChange}
+                  required
+                />
+                <p className="form-help">Password must be at least 8 characters long.</p>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="new-role">Role</label>
+                <select
+                  id="new-role"
+                  name="role"
+                  value={newUserData.role}
+                  onChange={handleNewUserInputChange}
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              
+              <div className="form-actions">
+                <button type="submit" className="action-btn save-btn">
+                  Create User
+                </button>
+                <button 
+                  type="button" 
+                  className="action-btn password-btn"
+                  onClick={() => setShowAddUserModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
