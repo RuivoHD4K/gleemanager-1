@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./UserManagement.css";
 
@@ -21,6 +21,20 @@ const UserManagement = () => {
     password: "",
     role: "user"
   });
+  
+  // Authentication modal states
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [pendingAction, setPendingAction] = useState(null);
+  
+  // Delete confirmation modal state
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  
+  // Store the original generated password
+  const [originalGeneratedPassword, setOriginalGeneratedPassword] = useState("");
+  const [isCustomPassword, setIsCustomPassword] = useState(false);
+  const [isPasswordEditable, setIsPasswordEditable] = useState(false);
   const navigate = useNavigate();
 
   // Fetch users on component mount
@@ -101,6 +115,20 @@ const UserManagement = () => {
     return password;
   };
 
+  // Initiates the password generation process with authentication
+  const initiatePasswordGeneration = () => {
+    if (!selectedUser) return;
+    
+    // Set the pending action
+    setPendingAction('generatePassword');
+    // Open auth modal
+    setShowAuthModal(true);
+    // Reset any previous errors
+    setAuthError("");
+    setAdminPassword("");
+  };
+
+  // Actual password generation after authentication
   const handleGeneratePassword = async () => {
     if (!selectedUser) return;
     
@@ -137,14 +165,152 @@ const UserManagement = () => {
     }
   };
 
+  // Initiates the delete user process with authentication
+  const initiateDeleteUser = () => {
+    if (!selectedUser) return;
+    
+    // Cannot delete yourself
+    const currentUserId = localStorage.getItem("userId");
+    if (currentUserId === selectedUser.userId) {
+      showNotification("You cannot delete your own account", "error");
+      return;
+    }
+    
+    // Set the pending action
+    setPendingAction('deleteUser');
+    // Open auth modal
+    setShowAuthModal(true);
+    // Reset any previous errors
+    setAuthError("");
+    setAdminPassword("");
+  };
+
+  // Opens the delete confirmation modal after authentication
+  const showDeleteConfirmation = () => {
+    setShowDeleteConfirmModal(true);
+  };
+
+  // Actual delete user function
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`http://localhost:5000/users/${selectedUser.userId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to delete user");
+      }
+      
+      // Remove user from the state
+      const updatedUsers = users.filter(user => user.userId !== selectedUser.userId);
+      setUsers(updatedUsers);
+      
+      // Select first user after deletion if available
+      if (updatedUsers.length > 0) {
+        setSelectedUser(updatedUsers[0]);
+      } else {
+        setSelectedUser(null);
+      }
+      
+      // Close the confirmation modal
+      setShowDeleteConfirmModal(false);
+      
+      showNotification("User deleted successfully", "success");
+    } catch (err) {
+      showNotification("Failed to delete user: " + err.message, "error");
+    }
+  };
+
+  // Handle authentication for sensitive actions
+  const handleAuthenticate = async (e) => {
+    e.preventDefault();
+    
+    if (!adminPassword) {
+      setAuthError("Password is required");
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem("authToken");
+      const currentUserEmail = localStorage.getItem("userEmail");
+      
+      // Make authentication request
+      const response = await fetch("http://localhost:5000/authenticate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          email: currentUserEmail, 
+          password: adminPassword 
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.authenticated) {
+        setAuthError("Invalid password");
+        return;
+      }
+      
+      // Close the auth modal
+      setShowAuthModal(false);
+      setAdminPassword("");
+      
+      // Proceed with the pending action
+      if (pendingAction === 'generatePassword') {
+        handleGeneratePassword();
+      } else if (pendingAction === 'deleteUser') {
+        showDeleteConfirmation();
+      }
+      
+    } catch (err) {
+      setAuthError("Authentication failed: " + err.message);
+    }
+  };
+
+  const togglePasswordEditMode = () => {
+    // If switching to edit mode
+    if (!isPasswordEditable) {
+      setIsPasswordEditable(true);
+      setIsCustomPassword(true);
+    } else {
+      // Switching back to generated password
+      setIsPasswordEditable(false);
+      setIsCustomPassword(false);
+      // Restore the original generated password
+      setNewUserData({
+        ...newUserData,
+        password: originalGeneratedPassword
+      });
+    }
+  };
+
   const handleCreateNewUser = () => {
-    // Reset form data
+    // Generate a random password for the new user
+    const randomPassword = generateRandomPassword();
+    
+    // Reset form data with generated password
     setNewUserData({
       email: "",
       username: "",
-      password: generateRandomPassword(), // Generate a random initial password
+      password: randomPassword,
       role: "user"
     });
+    
+    // Store the original generated password
+    setOriginalGeneratedPassword(randomPassword);
+    
+    // Reset custom password state
+    setIsCustomPassword(false);
+    setIsPasswordEditable(false);
+    
     setShowAddUserModal(true);
   };
 
@@ -176,7 +342,8 @@ const UserManagement = () => {
           username: newUserData.username,
           role: newUserData.role,
           createdAt: new Date().toISOString(),
-          mustChangePassword: true // New users must change password on first login
+          // Only set mustChangePassword to true if it's not a custom password
+          mustChangePassword: !isCustomPassword
         })
       });
       
@@ -188,10 +355,10 @@ const UserManagement = () => {
       
       // Add new user to state
       const newUser = result.user;
-      setUsers([...users, {...newUser, mustChangePassword: true}]);
+      setUsers([...users, {...newUser, mustChangePassword: !isCustomPassword}]);
       
       // Select newly created user
-      setSelectedUser({...newUser, mustChangePassword: true});
+      setSelectedUser({...newUser, mustChangePassword: !isCustomPassword});
       
       setShowAddUserModal(false);
       showNotification(`User ${newUserData.email} created successfully!`, "success");
@@ -253,6 +420,22 @@ const UserManagement = () => {
   };
 
   if (loading) return <div className="loading-indicator">Loading users...</div>;
+
+  // SVG icons for buttons
+  const PencilIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"></path>
+    </svg>
+  );
+
+  const RefreshIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+      <path d="M21 3v5h-5"></path>
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+      <path d="M3 21v-5h5"></path>
+    </svg>
+  );
 
   return (
     <div className="user-management-container">
@@ -356,15 +539,24 @@ const UserManagement = () => {
               </div>
               
               <div className="form-actions">
-                <button type="submit" className="action-btn save-btn">
-                  Save Changes
-                </button>
-                <button 
-                  type="button" 
-                  className="action-btn password-btn"
-                  onClick={handleGeneratePassword}
+                <div className="action-buttons-left">
+                  <button type="submit" className="action-btn save-btn">
+                    Save Changes
+                  </button>
+                  <button 
+                    type="button" 
+                    className="action-btn password-btn"
+                    onClick={initiatePasswordGeneration}
+                  >
+                    Generate New Password
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="action-btn delete-btn"
+                  onClick={initiateDeleteUser}
                 >
-                  Generate New Password
+                  Delete User
                 </button>
               </div>
             </form>
@@ -382,7 +574,7 @@ const UserManagement = () => {
             <p>
               A new password has been generated for <strong>{selectedUser.email}</strong>:
             </p>
-            <div className="password-display">
+            <div className="modal-password-display">
               {newPassword}
             </div>
             <p className="modal-note">
@@ -433,17 +625,36 @@ const UserManagement = () => {
               
               <div className="form-group">
                 <label htmlFor="new-password">Password</label>
-                <input
-                  type="text" // Text to make it visible
-                  id="new-password"
-                  name="password"
-                  value={newUserData.password}
-                  onChange={handleNewUserInputChange}
-                  required
-                />
+                <div className={`password-display-container ${isPasswordEditable ? 'editable' : ''}`}>
+                  {isPasswordEditable ? (
+                    <input
+                      type="text"
+                      id="new-password"
+                      name="password"
+                      value={newUserData.password}
+                      onChange={handleNewUserInputChange}
+                      className="custom-password"
+                      required
+                    />
+                  ) : (
+                    <div className="password-display">
+                      {newUserData.password}
+                    </div>
+                  )}
+                  <button 
+                    type="button" 
+                    className="edit-password-btn"
+                    onClick={togglePasswordEditMode}
+                    title={isPasswordEditable ? "Use generated password" : "Set custom password"}
+                  >
+                    {isPasswordEditable ? <RefreshIcon /> : <PencilIcon />}
+                  </button>
+                </div>
+                
                 <p className="form-help">
-                  Password must be at least 8 characters long. 
-                  The user will be required to change this password on first login.
+                  {isCustomPassword ? 
+                    "Custom password will not require a change on first login." : 
+                    "The user will be required to change this password on first login."}
                 </p>
               </div>
               
@@ -473,6 +684,79 @@ const UserManagement = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Authentication Modal */}
+      {showAuthModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content">
+            <h3>Authentication Required</h3>
+            <p>
+              Please enter your password to continue with this action.
+            </p>
+            
+            <form onSubmit={handleAuthenticate} className="auth-form">
+              {authError && <div className="auth-error">{authError}</div>}
+              
+              <div className="form-group">
+                <label htmlFor="admin-password">Your Password</label>
+                <input
+                  type="password"
+                  id="admin-password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="form-actions">
+                <button type="submit" className="action-btn save-btn">
+                  Authenticate
+                </button>
+                <button 
+                  type="button" 
+                  className="action-btn cancel-btn"
+                  onClick={() => {
+                    setShowAuthModal(false);
+                    setPendingAction(null);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content">
+            <h3>Confirm Delete User</h3>
+            <p>
+              Are you sure you want to delete the user <strong>{selectedUser.email}</strong>?
+            </p>
+            <p className="warning-text">
+              This action cannot be undone. All data associated with this user will be permanently deleted.
+            </p>
+            
+            <div className="form-actions">
+              <button 
+                className="action-btn delete-btn"
+                onClick={handleDeleteUser}
+              >
+                Delete User
+              </button>
+              <button 
+                className="action-btn cancel-btn"
+                onClick={() => setShowDeleteConfirmModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

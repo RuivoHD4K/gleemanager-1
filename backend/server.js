@@ -1,5 +1,5 @@
 const http = require("http");
-const { PutCommand, ScanCommand } = require("@aws-sdk/lib-dynamodb");
+const { PutCommand, ScanCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
 const dynamoDB = require("./database");
 const crypto = require("crypto"); // Node.js built-in encryption library
 const { v4: uuidv4 } = require("uuid"); // You'll need to install this: npm install uuid
@@ -111,6 +111,7 @@ const server = http.createServer((req, res) => {
             user: {
               userId,
               email: user.email,
+              username: user.username,
               createdAt: user.createdAt,
               role: user.role || "user", // Include the role in the response
               mustChangePassword: user.mustChangePassword || false // Include flag in response
@@ -184,13 +185,14 @@ const server = http.createServer((req, res) => {
           passwordHash,
           salt,
           createdAt: userData.createdAt,
-          role: "user", // Default role for new users
-          mustChangePassword: true // New users must change password on first login
+          username: userData.username || userData.email.split('@')[0],
+          role: userData.role || "user", // Default role for new users
+          mustChangePassword: userData.mustChangePassword !== undefined ? userData.mustChangePassword : true // Default to true if not specified
         };
         
         const params = new PutCommand({
           TableName: "Users",
-          Item: user,
+          Item: user
         });
 
         await dynamoDB.send(params);
@@ -209,6 +211,7 @@ const server = http.createServer((req, res) => {
           user: { 
             userId,
             email: user.email,
+            username: user.username,
             createdAt: user.createdAt,
             role: user.role, // Include role in the response
             mustChangePassword: user.mustChangePassword // Include flag in response
@@ -425,6 +428,69 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: err.message }));
       }
     });
+  }
+  
+  // Delete a user
+  else if (req.method === "DELETE" && req.url.match(/^\/users\/[^\/]+$/)) {
+    // Extract userId from URL
+    const userId = req.url.split("/")[2];
+    console.log("Delete user request for userId:", userId);
+    
+    // Check if token is valid
+    if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+      console.log("Authorization failed for token:", token);
+      res.writeHead(401, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Unauthorized" }));
+    }
+    
+    // Prevent users from deleting their own account
+    const currentUserId = tokenStore.get(token).userId;
+    if (currentUserId === userId) {
+      console.log("User attempted to delete their own account:", userId);
+      res.writeHead(403, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "You cannot delete your own account" }));
+    }
+
+    // Need to handle request completely asynchronously
+    (async () => {
+      try {
+        // First check if the user exists
+        const getParams = new ScanCommand({
+          TableName: "Users",
+          FilterExpression: "userId = :userId",
+          ExpressionAttributeValues: {
+            ":userId": userId
+          }
+        });
+        
+        console.log("Looking for user with ID:", userId);
+        const userResult = await dynamoDB.send(getParams);
+        
+        if (!userResult.Items || userResult.Items.length === 0) {
+          console.log("User not found with ID:", userId);
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "User not found" }));
+        }
+        
+        // Delete the user
+        const deleteParams = new DeleteCommand({
+          TableName: "Users",
+          Key: {
+            userId: userId
+          }
+        });
+        
+        await dynamoDB.send(deleteParams);
+        console.log("User deleted successfully:", userId);
+        
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "User deleted successfully" }));
+      } catch (err) {
+        console.error("Error deleting user:", err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    })();
   }
   
   // 404 Not Found for all other routes
