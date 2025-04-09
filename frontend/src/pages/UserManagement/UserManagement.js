@@ -122,6 +122,15 @@ const UserManagement = () => {
         throw new Error("Failed to update password");
       }
       
+      // The server will set mustChangePassword to true for admin password resets
+      
+      // Update user list to reflect the change
+      const updatedUser = {...selectedUser, mustChangePassword: true};
+      setUsers(users.map(user => 
+        user.userId === selectedUser.userId ? updatedUser : user
+      ));
+      setSelectedUser(updatedUser);
+      
       setShowPasswordModal(true);
     } catch (err) {
       showNotification("Failed to update password: " + err.message, "error");
@@ -166,7 +175,8 @@ const UserManagement = () => {
           password: newUserData.password,
           username: newUserData.username,
           role: newUserData.role,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          mustChangePassword: true // New users must change password on first login
         })
       });
       
@@ -178,10 +188,10 @@ const UserManagement = () => {
       
       // Add new user to state
       const newUser = result.user;
-      setUsers([...users, newUser]);
+      setUsers([...users, {...newUser, mustChangePassword: true}]);
       
       // Select newly created user
-      setSelectedUser(newUser);
+      setSelectedUser({...newUser, mustChangePassword: true});
       
       setShowAddUserModal(false);
       showNotification(`User ${newUserData.email} created successfully!`, "success");
@@ -206,7 +216,11 @@ const UserManagement = () => {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          // Preserve the mustChangePassword flag
+          mustChangePassword: selectedUser.mustChangePassword
+        })
       });
       
       if (!response.ok) {
@@ -276,6 +290,9 @@ const UserManagement = () => {
                       <div className="user-info">
                         <span className="user-email">{user.email}</span>
                         <span className="user-role">{user.role || "user"}</span>
+                        {user.mustChangePassword && (
+                          <span className="password-status">Password change required</span>
+                        )}
                       </div>
                     </div>
                   </li>
@@ -326,6 +343,18 @@ const UserManagement = () => {
                 </select>
               </div>
               
+              <div className="password-status-display">
+                {selectedUser.mustChangePassword ? (
+                  <div className="password-change-required">
+                    Password change required on next login
+                  </div>
+                ) : (
+                  <div className="password-status-ok">
+                    Password status: OK
+                  </div>
+                )}
+              </div>
+              
               <div className="form-actions">
                 <button type="submit" className="action-btn save-btn">
                   Save Changes
@@ -358,6 +387,9 @@ const UserManagement = () => {
             </div>
             <p className="modal-note">
               Please copy this password now. You won't be able to view it again.
+            </p>
+            <p className="modal-note">
+              <strong>Note:</strong> The user will be required to change this password on next login.
             </p>
             <button 
               className="action-btn"
@@ -409,7 +441,10 @@ const UserManagement = () => {
                   onChange={handleNewUserInputChange}
                   required
                 />
-                <p className="form-help">Password must be at least 8 characters long.</p>
+                <p className="form-help">
+                  Password must be at least 8 characters long. 
+                  The user will be required to change this password on first login.
+                </p>
               </div>
               
               <div className="form-group">

@@ -68,6 +68,17 @@
   max-width: fit-content;
 }
 
+.password-status {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: #e67700;
+  background-color: #fff3cd;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  margin-top: 0.3rem;
+  max-width: fit-content;
+}
+
 /* User edit form */
 .user-edit-card {
   min-height: 500px;
@@ -137,6 +148,29 @@
 
 .password-btn:hover {
   background-color: #e88a35;
+}
+
+/* Password status display */
+.password-status-display {
+  padding: 0.8rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+.password-change-required {
+  background-color: #fff3cd;
+  color: #e67700;
+  padding: 0.8rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.password-status-ok {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 0.8rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
 }
 
 /* Modal styles */

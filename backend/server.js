@@ -112,7 +112,8 @@ const server = http.createServer((req, res) => {
               userId,
               email: user.email,
               createdAt: user.createdAt,
-              role: user.role || "user" // Include the role in the response
+              role: user.role || "user", // Include the role in the response
+              mustChangePassword: user.mustChangePassword || false // Include flag in response
             }
           }));
         } else {
@@ -176,14 +177,15 @@ const server = http.createServer((req, res) => {
         const passwordHash = hashPassword(userData.password, salt);
         
         // Create the user object (without the plain password)
-        // Add default role as "user"
+        // Add default role as "user" and set mustChangePassword flag to true
         const user = {
           userId,
           email: userData.email,
           passwordHash,
           salt,
           createdAt: userData.createdAt,
-          role: "user" // Default role for new users
+          role: "user", // Default role for new users
+          mustChangePassword: true // New users must change password on first login
         };
         
         const params = new PutCommand({
@@ -208,7 +210,8 @@ const server = http.createServer((req, res) => {
             userId,
             email: user.email,
             createdAt: user.createdAt,
-            role: user.role // Include role in the response
+            role: user.role, // Include role in the response
+            mustChangePassword: user.mustChangePassword // Include flag in response
           }
         }));
       } catch (err) {
@@ -308,7 +311,11 @@ const server = http.createServer((req, res) => {
           ...existingUser,
           email: userData.email || existingUser.email,
           username: userData.username || existingUser.username,
-          role: userData.role || existingUser.role
+          role: userData.role || existingUser.role,
+          // Only update mustChangePassword if it's explicitly provided
+          mustChangePassword: userData.mustChangePassword !== undefined 
+            ? userData.mustChangePassword 
+            : existingUser.mustChangePassword
         };
         
         console.log("Updating user to:", updatedUser);
@@ -381,15 +388,21 @@ const server = http.createServer((req, res) => {
         const user = userResult.Items[0];
         console.log("Found user for password update:", user.email);
         
+        // Check if this is a self-password change (user changing their own password)
+        const isSelfChange = tokenStore.get(token).userId === userId;
+        
         // Generate new salt and hash for the password
         const salt = generateSalt();
         const passwordHash = hashPassword(passwordData.password, salt);
         
         // Update the user with new password hash and salt
+        // If it's an admin reset, set mustChangePassword to true
+        // If it's a self-change, set mustChangePassword to false
         const updatedUser = {
           ...user,
           passwordHash,
-          salt
+          salt,
+          mustChangePassword: isSelfChange ? false : true // Only set to false if user is changing their own password
         };
         
         console.log("Updating password for user:", user.email);
@@ -402,7 +415,10 @@ const server = http.createServer((req, res) => {
         console.log("Password updated successfully");
         
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ message: "Password updated successfully" }));
+        res.end(JSON.stringify({ 
+          message: "Password updated successfully",
+          mustChangePassword: updatedUser.mustChangePassword
+        }));
       } catch (err) {
         console.error("Error updating password:", err);
         res.writeHead(500, { "Content-Type": "application/json" });

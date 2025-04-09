@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Login.css";
 
-const Login = ({ setIsAuthenticated, setUserRole }) => {
+const Login = ({ setIsAuthenticated, setUserRole, setMustChangePassword }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -48,6 +48,7 @@ const Login = ({ setIsAuthenticated, setUserRole }) => {
       
       if (data.authenticated) {
         const userRole = data.user.role || "user";
+        const mustChangePasswordFlag = data.user.mustChangePassword || false;
         
         // Store token and user info in localStorage
         localStorage.setItem("authToken", data.token);
@@ -56,13 +57,15 @@ const Login = ({ setIsAuthenticated, setUserRole }) => {
         localStorage.setItem("userRole", userRole);
         localStorage.setItem("username", data.user.username || data.user.email.split('@')[0]);
         localStorage.setItem("isAuthenticated", "true");
+        localStorage.setItem("mustChangePassword", mustChangePasswordFlag.toString());
         
         setSuccessMessage("Login successful! Redirecting...");
         
-        // Update authentication state AND user role state
+        // Update authentication state, user role, and mustChangePassword state
         setTimeout(() => {
           setIsAuthenticated(true);
           setUserRole(userRole);
+          setMustChangePassword(mustChangePasswordFlag);
         }, 1000);
       } else {
         setError("Invalid email or password");
@@ -112,6 +115,7 @@ const Login = ({ setIsAuthenticated, setUserRole }) => {
       }
       
       const userRole = data.user.role || "user";
+      const mustChangePasswordFlag = data.user.mustChangePassword || true; // New users should change password
       
       // Store token and user info
       localStorage.setItem("authToken", data.token);
@@ -120,6 +124,7 @@ const Login = ({ setIsAuthenticated, setUserRole }) => {
       localStorage.setItem("userRole", userRole);
       localStorage.setItem("username", data.user.username || data.user.email.split('@')[0]);
       localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("mustChangePassword", mustChangePasswordFlag.toString());
       
       setSuccessMessage("Account created successfully! Redirecting...");
       
@@ -127,6 +132,7 @@ const Login = ({ setIsAuthenticated, setUserRole }) => {
       setTimeout(() => {
         setIsAuthenticated(true);
         setUserRole(userRole);
+        setMustChangePassword(mustChangePasswordFlag);
       }, 1000);
     } catch (err) {
       setError("Sign up failed: " + err.message);
