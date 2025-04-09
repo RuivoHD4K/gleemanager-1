@@ -77,70 +77,6 @@ const Login = ({ setIsAuthenticated, setUserRole, setMustChangePassword }) => {
     }
   };
 
-  const handleSignUp = async (e) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      setError("Email and password are required");
-      return;
-    }
-    
-    // Basic password validation
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long");
-      return;
-    }
-    
-    setLoading(true);
-    setError("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch("http://localhost:5000/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          createdAt: new Date().toISOString(),
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create user");
-      }
-      
-      const userRole = data.user.role || "user";
-      const mustChangePasswordFlag = data.user.mustChangePassword || true; // New users should change password
-      
-      // Store token and user info
-      localStorage.setItem("authToken", data.token);
-      localStorage.setItem("userEmail", data.user.email);
-      localStorage.setItem("userId", data.user.userId);
-      localStorage.setItem("userRole", userRole);
-      localStorage.setItem("username", data.user.username || data.user.email.split('@')[0]);
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("mustChangePassword", mustChangePasswordFlag.toString());
-      
-      setSuccessMessage("Account created successfully! Redirecting...");
-      
-      // Update authentication state AND user role state
-      setTimeout(() => {
-        setIsAuthenticated(true);
-        setUserRole(userRole);
-        setMustChangePassword(mustChangePasswordFlag);
-      }, 1000);
-    } catch (err) {
-      setError("Sign up failed: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="login-container">
       <div className="login-box">
@@ -176,14 +112,6 @@ const Login = ({ setIsAuthenticated, setUserRole, setMustChangePassword }) => {
           <div className="button-group">
             <button type="submit" disabled={loading}>
               {loading ? "Processing..." : "Login"}
-            </button>
-            <button 
-              type="button" 
-              onClick={handleSignUp} 
-              disabled={loading}
-              className="signup-btn"
-            >
-              Sign Up
             </button>
           </div>
         </form>
