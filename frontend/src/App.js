@@ -4,6 +4,7 @@ import Login from "./pages/Login/Login";
 import AdminDashboard from "./pages/Dashboard/AdminDashboard";
 import UserDashboard from "./pages/Dashboard/UserDashboard";
 import UserManagement from "./pages/UserManagement/UserManagement";
+import ProjectManagement from "./pages/ProjectManagement/ProjectManagement"; // Import the new component
 import Profile from "./pages/Profile/Profile";
 import ChangePassword from "./pages/ChangePassword/ChangePassword";
 import BaseLayout from "./components/Layout/BaseLayout";
@@ -33,12 +34,78 @@ function App() {
     
     checkAuth();
   }, []);
+
+  // Set up window beforeunload event to mark user as offline when they close tab/browser
+  useEffect(() => {
+    const handleTabClose = () => {
+      if (isAuthenticated) {
+        const userId = localStorage.getItem("userId");
+        const token = localStorage.getItem("authToken");
+        
+        if (userId && token) {
+          // Use navigator.sendBeacon for more reliable delivery in beforeunload events
+          const url = `http://localhost:5000/offline?userId=${userId}&token=${token}`;
+          navigator.sendBeacon(url);
+        }
+      }
+    };
+    
+    // Set up ping interval to update online status
+    let pingInterval;
+    if (isAuthenticated) {
+      // Initial ping
+      sendPing();
+      
+      // Set up regular ping every 30 seconds
+      pingInterval = setInterval(sendPing, 30000);
+    }
+    
+    // Add event listener for tab/browser close
+    window.addEventListener("beforeunload", handleTabClose);
+    
+    // Clean up on component unmount
+    return () => {
+      window.removeEventListener("beforeunload", handleTabClose);
+      if (pingInterval) clearInterval(pingInterval);
+    };
+  }, [isAuthenticated]);
+  
+  // Function to send a ping to the server to update online status
+  const sendPing = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+      
+      await fetch("http://localhost:5000/ping", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+    } catch (err) {
+      console.error("Ping error:", err);
+    }
+  };
   
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem("authToken");
+      const userId = localStorage.getItem("userId");
+      
       if (token) {
-        // Call the logout endpoint
+        // First, mark the user as offline
+        if (userId) {
+          try {
+            // Use fetch instead of sendBeacon for explicit logout
+            await fetch(`http://localhost:5000/offline?userId=${userId}&token=${token}`, {
+              method: "POST"
+            });
+          } catch (error) {
+            console.error("Error setting offline status:", error);
+          }
+        }
+        
+        // Then call the logout endpoint
         await fetch("http://localhost:5000/logout", {
           method: "DELETE",
           headers: {
@@ -135,6 +202,18 @@ function App() {
             element={
               userRole === "admin" ? (
                 <UserManagement />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+          
+          {/* Project Management route - admin only */}
+          <Route 
+            path="project-management" 
+            element={
+              userRole === "admin" ? (
+                <ProjectManagement />
               ) : (
                 <Navigate to="/" replace />
               )

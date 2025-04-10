@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import UsersList from '../../components/UsersList';
+import { Users, FolderKanban } from 'lucide-react';
+import './AdminDashboard.css';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -16,6 +18,22 @@ const AdminDashboard = () => {
           <button className="action-btn" onClick={() => navigate("/settings")}>
             System Settings
           </button>
+        </div>
+      </div>
+      
+      {/* App Drawer */}
+      <div className="app-drawer">
+        <div className="drawer-item" onClick={() => navigate("/user-management")}>
+          <div className="drawer-icon">
+            <Users size={32} />
+          </div>
+          <span className="drawer-label">User Management</span>
+        </div>
+        <div className="drawer-item" onClick={() => navigate("/project-management")}>
+          <div className="drawer-icon">
+            <FolderKanban size={32} />
+          </div>
+          <span className="drawer-label">Project Management</span>
         </div>
       </div>
       
@@ -48,7 +66,8 @@ const AdminDashboard = () => {
         </div>
       </div>
       
-      <UsersList />
+      {/* Only show online users in the dashboard */}
+      <UsersList onlyShowOnline={true} />
     </div>
   );
 };

@@ -1,0 +1,125 @@
+/* ProjectManagement.css */
+.project-management-container {
+  width: 100%;
+}
+
+.project-management-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Projects list styles */
+.projects-list-card {
+  min-height: 500px;
+}
+
+.projects-list-container {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.projects-select-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.projects-select-list li {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--light-gray);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.projects-select-list li:hover {
+  background-color: var(--gray-bg);
+}
+
+.projects-select-list li.selected {
+  background-color: rgba(248, 84, 68, 0.1);
+  border-left: 3px solid var(--primary-color);
+}
+
+.project-list-item {
+  display: flex;
+  justify-content: space-between;
+}
+
+.project-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.project-name {
+  font-weight: 500;
+}
+
+.project-dates {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.3rem;
+}
+
+/* Project edit form */
+.project-edit-card {
+  min-height: 500px;
+}
+
+.project-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  margin-top: 1rem;
+}
+
+.project-details {
+  background-color: var(--gray-bg);
+  padding: 0.8rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.project-id {
+  font-family: monospace;
+  color: #666;
+}
+
+/* Form action buttons layout */
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-content: space-between;
+}
+
+/* Left-aligned buttons group */
+.action-buttons-left {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .project-management-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .projects-list-card {
+    min-height: 300px;
+  }
+  
+  .projects-list-container {
+    max-height: 250px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .delete-btn {
+    margin-top: 0.5rem;
+  }
+}

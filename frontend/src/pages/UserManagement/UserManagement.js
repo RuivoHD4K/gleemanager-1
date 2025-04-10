@@ -37,24 +37,24 @@ const UserManagement = () => {
   const [isPasswordEditable, setIsPasswordEditable] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch users on component mount
+  // Fetch users on component mount and every 10 seconds
   useEffect(() => {
     fetchUsers();
+    
+    // Set up interval to refresh user data every 10 seconds
+    const intervalId = setInterval(() => {
+      fetchUsers(false); // Don't show loading state for background refreshes
+    }, 10000);
+    
+    return () => clearInterval(intervalId); // Clean up on unmount
   }, []);
 
-  // Update form data when a user is selected
-  useEffect(() => {
-    if (selectedUser) {
-      setFormData({
-        email: selectedUser.email,
-        username: selectedUser.username || "",
-        role: selectedUser.role || "user"
-      });
-    }
-  }, [selectedUser]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = async (showLoading = true) => {
     try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      
       const token = localStorage.getItem("authToken");
       const response = await fetch("http://localhost:5000/users", {
         headers: {
@@ -73,18 +73,50 @@ const UserManagement = () => {
       }
       
       const data = await response.json();
+      
+      // Update users array
       setUsers(data);
       
-      // Select first user by default if available
-      if (data.length > 0 && !selectedUser) {
+      // If a user is selected, update their data in case it changed
+      if (selectedUser) {
+        const updatedSelectedUser = data.find(user => user.userId === selectedUser.userId);
+        if (updatedSelectedUser) {
+          setSelectedUser(updatedSelectedUser);
+        } else {
+          // If the selected user no longer exists, select the first user
+          if (data.length > 0) {
+            setSelectedUser(data[0]);
+          } else {
+            setSelectedUser(null);
+          }
+        }
+      } else if (data.length > 0 && !selectedUser) {
+        // Select first user by default if available and no user is currently selected
         setSelectedUser(data[0]);
       }
     } catch (err) {
-      showNotification(err.message, "error");
+      if (showLoading) {
+        showNotification(err.message, "error");
+      } else {
+        console.error("Background refresh error:", err);
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
+
+  // Update form data when a user is selected
+  useEffect(() => {
+    if (selectedUser) {
+      setFormData({
+        email: selectedUser.email,
+        username: selectedUser.username || "",
+        role: selectedUser.role || "user"
+      });
+    }
+  }, [selectedUser]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -394,12 +426,26 @@ const UserManagement = () => {
         throw new Error("Failed to update user");
       }
       
+      // Check if the response indicates sessions were invalidated
+      const data = await response.json();
+      
       // Refresh user list to show updated data
       fetchUsers();
       
       // Update local storage if the current user was updated
       const currentUserId = localStorage.getItem("userId");
       if (currentUserId === selectedUser.userId) {
+        // If the current user's data was changed, handle the session invalidation
+        if (data.sessionInvalidated) {
+          showNotification("Your account details have been changed. You will be logged out.", "info");
+          
+          // Wait 2 seconds then log out
+          setTimeout(() => {
+            handleLogout();
+          }, 2000);
+          return;
+        }
+        
         localStorage.setItem("username", formData.username || formData.email.split('@')[0]);
       }
       
@@ -407,6 +453,36 @@ const UserManagement = () => {
       showNotification("User updated successfully!", "success");
     } catch (err) {
       showNotification("Failed to update user: " + err.message, "error");
+    }
+  };
+  
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        // Call the logout endpoint
+        await fetch("http://localhost:5000/logout", {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Clear all auth data from localStorage
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("username");
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("mustChangePassword");
+      
+      // Redirect to login page
+      navigate("/login");
     }
   };
 
@@ -417,6 +493,35 @@ const UserManagement = () => {
     setTimeout(() => {
       setNotification(null);
     }, 5000);
+  };
+
+  // Format the time elapsed since last seen
+  const formatLastSeen = (lastSeenDate) => {
+    if (!lastSeenDate) return "Never";
+    
+    const lastSeen = new Date(lastSeenDate);
+    const now = new Date();
+    const diffMs = now - lastSeen;
+    
+    // Less than a minute
+    if (diffMs < 60000) {
+      return "Just now";
+    }
+    
+    // Less than an hour
+    if (diffMs < 3600000) {
+      const minutes = Math.floor(diffMs / 60000);
+      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+    }
+    
+    // Less than a day
+    if (diffMs < 86400000) {
+      const hours = Math.floor(diffMs / 3600000);
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    }
+    
+    // More than a day, just show the date
+    return lastSeen.toLocaleDateString();
   };
 
   if (loading) return <div className="loading-indicator">Loading users...</div>;
@@ -472,10 +577,16 @@ const UserManagement = () => {
                     <div className="user-list-item">
                       <div className="user-info">
                         <span className="user-email">{user.email}</span>
-                        <span className="user-role">{user.role || "user"}</span>
-                        {user.mustChangePassword && (
-                          <span className="password-status">Password change required</span>
-                        )}
+                        <div className="user-meta">
+                          <span className="user-role">{user.role || "user"}</span>
+                          {user.mustChangePassword && (
+                            <span className="password-status">Password change required</span>
+                          )}
+                          <span className="online-status">
+                            <span className={`status-indicator ${user.isOnline ? 'online' : 'offline'}`}></span>
+                            {user.isOnline ? 'Online' : `Last seen: ${formatLastSeen(user.lastSeen)}`}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </li>
