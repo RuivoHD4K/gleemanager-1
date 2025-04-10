@@ -1,0 +1,180 @@
+/* UsersList.css */
+
+.users-table-container {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.users-table th,
+.users-table td {
+  padding: 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid var(--light-gray);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.users-table th {
+  background-color: var(--primary-light);
+  color: white;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.users-table tr:hover {
+  background-color: var(--gray-bg);
+}
+
+/* Column widths */
+.username-col {
+  width: 20%;
+}
+
+.email-col {
+  width: 25%;
+}
+
+.created-col {
+  width: 15%;
+}
+
+.role-col {
+  width: 10%;
+  text-transform: capitalize;
+}
+
+.status-col {
+  width: 20%;
+}
+
+.userid-col {
+  width: 10%;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Status indicator with left margin */
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  margin-left: 8px !important; /* Important to override * selector from App.css */
+}
+
+.status-indicator.online {
+  background-color: var(--success-color);
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
+}
+
+.status-indicator.offline {
+  background-color: #aaa;
+}
+
+/* Password warning icon styling */
+.password-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #fff3cd;
+  color: #e67700;
+  font-weight: bold;
+  font-size: 12px;
+  margin-right: 0;
+  margin-left: 8px;
+}
+
+/* Loading and error states */
+.loading-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  font-style: italic;
+  color: #666;
+}
+
+.error-message {
+  color: var(--danger-color);
+  padding: 1rem;
+  background-color: rgba(220, 53, 69, 0.1);
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  /* Hide user ID column first (lowest priority) */
+  .userid-col {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Hide creation date column second */
+  .created-col {
+    display: none;
+  }
+  
+  /* Adjust column widths when fewer columns are visible */
+  .username-col {
+    width: 25%;
+  }
+  
+  .email-col {
+    width: 30%;
+  }
+  
+  .role-col {
+    width: 15%;
+  }
+  
+  .status-col {
+    width: 30%;
+  }
+}
+
+@media (max-width: 700px) {
+  /* Hide email column third (highest priority) */
+  .email-col {
+    display: none;
+  }
+  
+  /* Further adjust column widths */
+  .username-col {
+    width: 40%;
+  }
+  
+  .role-col {
+    width: 20%;
+  }
+  
+  .status-col {
+    width: 40%;
+  }
+}
+
+@media (max-width: 500px) {
+  /* Minimal view for very small screens */
+  .users-table th,
+  .users-table td {
+    padding: 0.5rem;
+  }
+  
+  .status-text {
+    font-size: 0.8rem;
+  }
+}

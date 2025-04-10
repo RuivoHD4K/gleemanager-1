@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import './Profile.css';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   
   // User data states
@@ -68,6 +69,9 @@ const Profile = () => {
         if (response.status === 404) {
           // If user not found, just use the data from localStorage
           // No need to show an error
+          setTimeout(() => {
+            setLoading(false);
+          }, 500);
           return;
         }
         throw new Error('Failed to fetch user data');
@@ -84,11 +88,16 @@ const Profile = () => {
         username: data.username || prevForm.username
       }));
       
+      // Add a slight delay to ensure minimum loading time for better UX
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
     } catch (error) {
       console.error('Error fetching user data:', error);
       // Don't show notification for fetch errors, just use localStorage data
-    } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
     }
   };
   
@@ -144,10 +153,14 @@ const Profile = () => {
       });
       
       showNotification('Username updated successfully', 'success');
+      
+      // Add a slight delay before hiding the loading spinner
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
     } catch (error) {
       console.error('Error updating username:', error);
       showNotification('Error updating username', 'error');
-    } finally {
       setLoading(false);
     }
   };
@@ -179,16 +192,32 @@ const Profile = () => {
     setLoading(true);
     try {
       // Call the API endpoint to update password
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem("authToken");
       
-      // Since you may not have a specific endpoint for password update,
-      // adapt this to match your actual API structure
-      // Option 1: If there's a dedicated password update endpoint
-      const response = await fetch(`http://localhost:5000/users/${userData.userId}/password`, {
-        method: 'PUT',
+      // Verify current password first
+      const verifyResponse = await fetch("http://localhost:5000/authenticate", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ 
+          email: userData.email, 
+          password: passwordForm.currentPassword 
+        })
+      });
+      
+      const verifyData = await verifyResponse.json();
+      
+      if (!verifyResponse.ok || !verifyData.authenticated) {
+        throw new Error("Current password is incorrect");
+      }
+      
+      // Update password
+      const response = await fetch(`http://localhost:5000/users/${userData.userId}/password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           password: passwordForm.newPassword
@@ -209,10 +238,14 @@ const Profile = () => {
       });
       
       showNotification('Password updated successfully', 'success');
+      
+      // Add a slight delay before hiding the loading spinner
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
     } catch (error) {
       console.error('Error updating password:', error);
       showNotification(error.message || 'Error updating password', 'error');
-    } finally {
       setLoading(false);
     }
   };
@@ -227,24 +260,22 @@ const Profile = () => {
   };
   
   return (
-    <div className="profile-container">
-      <div className="page-header">
-        <h1>My Profile</h1>
-      </div>
-      
-      {notification && (
-        <div className={`notification ${notification.type}`}>
-          {notification.message}
+    <LoadingSpinner isLoading={loading}>
+      <div className="profile-container">
+        <div className="page-header">
+          <h1>My Profile</h1>
         </div>
-      )}
-      
-      <div className="profile-grid">
-        {/* User information card */}
-        <div className="dashboard-card profile-card">
-          <h3>User Information</h3>
-          {loading ? (
-            <div className="loading-indicator">Loading user data...</div>
-          ) : (
+        
+        {notification && (
+          <div className={`notification ${notification.type}`}>
+            {notification.message}
+          </div>
+        )}
+        
+        <div className="profile-grid">
+          {/* User information card */}
+          <div className="dashboard-card profile-card">
+            <h3>User Information</h3>
             <div className="user-details">
               <div className="user-avatar">
                 <div 
@@ -280,92 +311,92 @@ const Profile = () => {
                 )}
               </div>
             </div>
-          )}
-        </div>
-        
-        {/* Update username card */}
-        <div className="dashboard-card edit-card">
-          <h3>Update Username</h3>
-          <form onSubmit={updateUsername} className="profile-form">
-            <div className="form-group">
-              <label htmlFor="username">Username</label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                value={usernameForm.username}
-                onChange={handleUsernameChange}
+          </div>
+          
+          {/* Update username card */}
+          <div className="dashboard-card edit-card">
+            <h3>Update Username</h3>
+            <form onSubmit={updateUsername} className="profile-form">
+              <div className="form-group">
+                <label htmlFor="username">Username</label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={usernameForm.username}
+                  onChange={handleUsernameChange}
+                  disabled={loading}
+                  required
+                />
+                <p className="form-help">This name will be displayed throughout the application.</p>
+              </div>
+              
+              <button 
+                type="submit" 
+                className="action-btn" 
                 disabled={loading}
-                required
-              />
-              <p className="form-help">This name will be displayed throughout the application.</p>
-            </div>
-            
-            <button 
-              type="submit" 
-              className="action-btn" 
-              disabled={loading}
-            >
-              {loading ? 'Updating...' : 'Update Username'}
-            </button>
-          </form>
-        </div>
-        
-        {/* Change password card */}
-        <div className="dashboard-card edit-card">
-          <h3>Change Password</h3>
-          <form onSubmit={updatePassword} className="profile-form">
-            <div className="form-group">
-              <label htmlFor="currentPassword">Current Password</label>
-              <input
-                type="password"
-                id="currentPassword"
-                name="currentPassword"
-                value={passwordForm.currentPassword}
-                onChange={handlePasswordChange}
+              >
+                {loading ? 'Updating...' : 'Update Username'}
+              </button>
+            </form>
+          </div>
+          
+          {/* Change password card */}
+          <div className="dashboard-card edit-card">
+            <h3>Change Password</h3>
+            <form onSubmit={updatePassword} className="profile-form">
+              <div className="form-group">
+                <label htmlFor="currentPassword">Current Password</label>
+                <input
+                  type="password"
+                  id="currentPassword"
+                  name="currentPassword"
+                  value={passwordForm.currentPassword}
+                  onChange={handlePasswordChange}
+                  disabled={loading}
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="newPassword">New Password</label>
+                <input
+                  type="password"
+                  id="newPassword"
+                  name="newPassword"
+                  value={passwordForm.newPassword}
+                  onChange={handlePasswordChange}
+                  disabled={loading}
+                  required
+                />
+                <p className="form-help">Password must be at least 8 characters long.</p>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="confirmPassword">Confirm New Password</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={passwordForm.confirmPassword}
+                  onChange={handlePasswordChange}
+                  disabled={loading}
+                  required
+                />
+              </div>
+              
+              <button 
+                type="submit" 
+                className="action-btn" 
                 disabled={loading}
-                required
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="newPassword">New Password</label>
-              <input
-                type="password"
-                id="newPassword"
-                name="newPassword"
-                value={passwordForm.newPassword}
-                onChange={handlePasswordChange}
-                disabled={loading}
-                required
-              />
-              <p className="form-help">Password must be at least 8 characters long.</p>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm New Password</label>
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={passwordForm.confirmPassword}
-                onChange={handlePasswordChange}
-                disabled={loading}
-                required
-              />
-            </div>
-            
-            <button 
-              type="submit" 
-              className="action-btn" 
-              disabled={loading}
-            >
-              {loading ? 'Updating...' : 'Change Password'}
-            </button>
-          </form>
+              >
+                {loading ? 'Updating...' : 'Change Password'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+    </LoadingSpinner>
   );
 };
 

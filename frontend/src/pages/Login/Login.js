@@ -1,29 +1,52 @@
 import React, { useState, useEffect } from "react";
+import LoadingSpinner from "../../components/LoadingSpinner/LoadingSpinner";
 import "./Login.css";
 
 const Login = ({ setIsAuthenticated, setUserRole, setMustChangePassword }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Check if we have a saved account to autofill
+  // Check if we have a saved account to autofill and check for existing auth
   useEffect(() => {
-    const switchAccount = sessionStorage.getItem('switchToAccount');
-    if (switchAccount) {
-      try {
-        const accountData = JSON.parse(switchAccount);
-        setEmail(accountData.email || '');
-        // Don't auto-fill password for security reasons
-        // Just clear the session storage
-        sessionStorage.removeItem('switchToAccount');
-      } catch (e) {
-        console.error('Error parsing account data', e);
-        sessionStorage.removeItem('switchToAccount');
+    const checkAuthAndAutofill = async () => {
+      setLoading(true);
+      
+      // Check if already authenticated
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        // Redirect will happen via the route config in App.js
+        setIsAuthenticated(true);
+        setUserRole(localStorage.getItem("userRole") || "user");
+        setMustChangePassword(localStorage.getItem("mustChangePassword") === "true");
+        return;
       }
-    }
-  }, []);
+      
+      // Check for account to autofill
+      const switchAccount = sessionStorage.getItem('switchToAccount');
+      if (switchAccount) {
+        try {
+          const accountData = JSON.parse(switchAccount);
+          setEmail(accountData.email || '');
+          // Don't auto-fill password for security reasons
+          // Just clear the session storage
+          sessionStorage.removeItem('switchToAccount');
+        } catch (e) {
+          console.error('Error parsing account data', e);
+          sessionStorage.removeItem('switchToAccount');
+        }
+      }
+      
+      // Simulate a brief loading period
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
+    };
+    
+    checkAuthAndAutofill();
+  }, [setIsAuthenticated, setUserRole, setMustChangePassword]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -69,55 +92,57 @@ const Login = ({ setIsAuthenticated, setUserRole, setMustChangePassword }) => {
         }, 1000);
       } else {
         setError("Invalid email or password");
+        setLoading(false);
       }
     } catch (err) {
       setError("Authentication failed: " + err.message);
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-box">
-        <div className="app-logo">
-          <h1>GleeManager</h1>
-          <p>Management made simple</p>
+    <LoadingSpinner isLoading={loading}>
+      <div className="login-container">
+        <div className="login-box">
+          <div className="app-logo">
+            <h1>GleeManager</h1>
+            <p>Management made simple</p>
+          </div>
+          
+          {error && <div className="notification error">{error}</div>}
+          {successMessage && <div className="notification success">{successMessage}</div>}
+          
+          <form onSubmit={handleLogin}>
+            <div className="form-group">
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
+            <div className="button-group">
+              <button type="submit" disabled={loading}>
+                {loading ? "Processing..." : "Login"}
+              </button>
+            </div>
+          </form>
+          <a href="#" className="forgot-password">Forgot Password?</a>
         </div>
-        
-        {error && <div className="notification error">{error}</div>}
-        {successMessage && <div className="notification success">{successMessage}</div>}
-        
-        <form onSubmit={handleLogin}>
-          <div className="form-group">
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              required
-            />
-          </div>
-          <div className="button-group">
-            <button type="submit" disabled={loading}>
-              {loading ? "Processing..." : "Login"}
-            </button>
-          </div>
-        </form>
-        <a href="#" className="forgot-password">Forgot Password?</a>
       </div>
-    </div>
+    </LoadingSpinner>
   );
 };
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 // Import appropriate icons from Lucide React
 import { 
@@ -20,58 +20,88 @@ const Sidebar = ({ userRole, isSidebarCollapsed }) => {
   // State to manage dashboard submenu
   const [isDashboardSubmenuOpen, setIsDashboardSubmenuOpen] = useState(false);
   
+  // Get current location to check active routes
+  const location = useLocation();
+  
   // Toggle submenu function
-  const toggleDashboardSubmenu = () => {
+  const toggleDashboardSubmenu = (e) => {
+    // Prevent navigation and event propagation
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!isSidebarCollapsed) {
       setIsDashboardSubmenuOpen(!isDashboardSubmenuOpen);
     }
   };
   
+  // Effect to handle submenu state when sidebar is collapsed
+  useEffect(() => {
+    if (isSidebarCollapsed) {
+      // Automatically close submenu when sidebar collapses
+      setIsDashboardSubmenuOpen(false);
+    }
+  }, [isSidebarCollapsed]);
+  
+  // Effect to open submenu if any submenu route is active
+  useEffect(() => {
+    if (!isSidebarCollapsed) {
+      const submenuRoutes = ['/', '/user-management', '/project-management'];
+      const isSubmenuRouteActive = submenuRoutes.some(route => 
+        location.pathname.startsWith(route)
+      );
+      
+      // Automatically open submenu if a submenu route is active
+      if (isSubmenuRouteActive) {
+        setIsDashboardSubmenuOpen(true);
+      }
+    }
+  }, [location.pathname, isSidebarCollapsed]);
+  
   return (
     <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
       <nav className="sidebar-nav">
-        <div 
-          className={`nav-link ${isDashboardSubmenuOpen ? 'active' : ''}`} 
-          onClick={toggleDashboardSubmenu}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', position: 'relative' }}
+        <NavLink 
+          to="/" 
+          className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}
         >
           <span className="nav-icon">
             <LayoutDashboard size={iconSize} />
           </span>
           <span className="nav-text">Dashboard</span>
           {!isSidebarCollapsed && (
-            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+            <span 
+              onClick={toggleDashboardSubmenu} 
+              style={{ 
+                marginLeft: 'auto', 
+                display: 'flex', 
+                alignItems: 'center', 
+                cursor: 'pointer',
+                padding: '0 5px'  // Add some padding for easier clicking
+              }}
+            >
               {isDashboardSubmenuOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </span>
           )}
-        </div>
+        </NavLink>
         
         {!isSidebarCollapsed && (
           <div className={`dashboard-submenu ${isDashboardSubmenuOpen ? 'open' : ''}`}>
-
+            {userRole === 'admin' && (
             <NavLink to="/user-management" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
               <span className="nav-icon">
                 <Users size={iconSize} />
               </span>
               <span className="nav-text">User Management</span>
-            </NavLink>
+            </NavLink>)}
             
+            {userRole === 'admin' && (
             <NavLink to="/project-management" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
               <span className="nav-icon">
                 <Folder size={iconSize} />
               </span>
               <span className="nav-text">Project Management</span>
-            </NavLink>
+            </NavLink>)}
           </div>
-        )}
-        
-        {userRole === 'admin' && (
-          <NavLink to="/settings" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
-            <span className="nav-icon">
-              <Settings size={iconSize} />
-            </span>
-            <span className="nav-text">System Settings</span>
-          </NavLink>
         )}
         
         <NavLink to="/profile" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>

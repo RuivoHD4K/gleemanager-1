@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import LoadingSpinner from "../../components/LoadingSpinner/LoadingSpinner";
 import "./UserManagement.css";
 
 const UserManagement = () => {
@@ -102,7 +103,10 @@ const UserManagement = () => {
       }
     } finally {
       if (showLoading) {
-        setLoading(false);
+        // Add a slight delay to ensure minimum loading time for UX
+        setTimeout(() => {
+          setLoading(false);
+        }, 500);
       }
     }
   };
@@ -374,8 +378,11 @@ const UserManagement = () => {
           username: newUserData.username,
           role: newUserData.role,
           createdAt: new Date().toISOString(),
-          // Only set mustChangePassword to true if it's not a custom password
-          mustChangePassword: !isCustomPassword
+          // Set mustChangePassword based on custom password setting
+          mustChangePassword: !isCustomPassword,
+          // Explicitly set the user as offline
+          isOnline: false,
+          lastSeen: new Date().toISOString()
         })
       });
       
@@ -385,12 +392,17 @@ const UserManagement = () => {
       
       const result = await response.json();
       
-      // Add new user to state
-      const newUser = result.user;
-      setUsers([...users, {...newUser, mustChangePassword: !isCustomPassword}]);
+      // Add new user to state with explicit offline status
+      const newUser = {
+        ...result.user,
+        mustChangePassword: !isCustomPassword,
+        isOnline: false
+      };
+      
+      setUsers([...users, newUser]);
       
       // Select newly created user
-      setSelectedUser({...newUser, mustChangePassword: !isCustomPassword});
+      setSelectedUser(newUser);
       
       setShowAddUserModal(false);
       showNotification(`User ${newUserData.email} created successfully!`, "success");
@@ -524,8 +536,6 @@ const UserManagement = () => {
     return lastSeen.toLocaleDateString();
   };
 
-  if (loading) return <div className="loading-indicator">Loading users...</div>;
-
   // SVG icons for buttons
   const PencilIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -542,336 +552,341 @@ const UserManagement = () => {
     </svg>
   );
 
+  // Exclamation Icon for password warning
+  const ExclamationIcon = () => (
+    <span className="password-warning">!</span>
+  );
+
   return (
-    <div className="user-management-container">
-      <div className="page-header">
-        <h1>User Management</h1>
-        <div className="page-actions">
-          <button className="action-btn" onClick={handleCreateNewUser}>
-            + New User
-          </button>
+    <LoadingSpinner isLoading={loading}>
+      <div className="user-management-container">
+        <div className="page-header">
+          <h1>User Management</h1>
+          <div className="page-actions">
+            <button className="action-btn" onClick={handleCreateNewUser}>
+              + New User
+            </button>
+          </div>
         </div>
-      </div>
-      
-      {notification && (
-        <div className={`notification ${notification.type}`}>
-          {notification.message}
-        </div>
-      )}
-      
-      <div className="user-management-grid">
-        {/* Users list card */}
-        <div className="dashboard-card users-list-card">
-          <h3>Users</h3>
-          <div className="users-list-container">
-            {users.length === 0 ? (
-              <p>No users found</p>
-            ) : (
-              <ul className="users-select-list">
-                {users.map((user) => (
-                  <li 
-                    key={user.userId} 
-                    onClick={() => handleUserSelect(user)}
-                    className={selectedUser && selectedUser.userId === user.userId ? "selected" : ""}
-                  >
-                    <div className="user-list-item">
-                      <div className="user-info">
-                        <span className="user-email">{user.email}</span>
-                        <div className="user-meta">
-                          <span className="user-role">{user.role || "user"}</span>
-                          {user.mustChangePassword && (
-                            <span className="password-status">Password change required</span>
-                          )}
-                          <span className="online-status">
-                            <span className={`status-indicator ${user.isOnline ? 'online' : 'offline'}`}></span>
-                            {user.isOnline ? 'Online' : `Last seen: ${formatLastSeen(user.lastSeen)}`}
-                          </span>
+        
+        {notification && (
+          <div className={`notification ${notification.type}`}>
+            {notification.message}
+          </div>
+        )}
+        
+        <div className="user-management-grid">
+          {/* Users list card */}
+          <div className="dashboard-card users-list-card">
+            <h3>Users</h3>
+            <div className="users-list-container">
+              {users.length === 0 ? (
+                <p>No users found</p>
+              ) : (
+                <ul className="users-select-list">
+                  {users.map((user) => (
+                    <li 
+                      key={user.userId} 
+                      onClick={() => handleUserSelect(user)}
+                      className={selectedUser && selectedUser.userId === user.userId ? "selected" : ""}
+                    >
+                      <div className="user-list-item">
+                        <div className="user-info">
+                          <span className="user-email">{user.email}</span>
+                          <div className="user-meta">
+                            <span className="user-role">{user.role || "user"}</span>
+                            <span className="online-status">
+                              <span className={`status-indicator ${user.isOnline ? 'online' : 'offline'}`}></span>
+                              {user.isOnline ? 'Online' : `Last seen: ${formatLastSeen(user.lastSeen)}`}
+                            </span>
+                            {user.mustChangePassword && <ExclamationIcon />}
+                          </div>
                         </div>
                       </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+          
+          {/* User edit form card */}
+          <div className="dashboard-card user-edit-card">
+            <h3>Edit User</h3>
+            {selectedUser ? (
+              <form onSubmit={handleSubmit} className="user-edit-form">
+                <div className="form-group">
+                  <label htmlFor="username">Username</label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="email">Email</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="role">Role</label>
+                  <select
+                    id="role"
+                    name="role"
+                    value={formData.role}
+                    onChange={handleInputChange}
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                
+                <div className="password-status-display">
+                  {selectedUser.mustChangePassword ? (
+                    <div className="password-change-required">
+                      Password change required on next login
                     </div>
-                  </li>
-                ))}
-              </ul>
+                  ) : (
+                    <div className="password-status-ok">
+                      Password status: OK
+                    </div>
+                  )}
+                </div>
+                
+                <div className="form-actions">
+                  <div className="action-buttons-left">
+                    <button type="submit" className="action-btn save-btn">
+                      Save Changes
+                    </button>
+                    <button 
+                      type="button" 
+                      className="action-btn password-btn"
+                      onClick={initiatePasswordGeneration}
+                    >
+                      Generate New Password
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    className="action-btn delete-btn"
+                    onClick={initiateDeleteUser}
+                  >
+                    Delete User
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <p>Select a user to edit</p>
             )}
           </div>
         </div>
         
-        {/* User edit form card */}
-        <div className="dashboard-card user-edit-card">
-          <h3>Edit User</h3>
-          {selectedUser ? (
-            <form onSubmit={handleSubmit} className="user-edit-form">
-              <div className="form-group">
-                <label htmlFor="username">Username</label>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                />
+        {/* Password modal popup */}
+        {showPasswordModal && (
+          <div className="modal-backdrop">
+            <div className="modal-content">
+              <h3>New Password Generated</h3>
+              <p>
+                A new password has been generated for <strong>{selectedUser.email}</strong>:
+              </p>
+              <div className="modal-password-display">
+                {newPassword}
               </div>
-              
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="role">Role</label>
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              
-              <div className="password-status-display">
-                {selectedUser.mustChangePassword ? (
-                  <div className="password-change-required">
-                    Password change required on next login
+              <p className="modal-note">
+                Please copy this password now. You won't be able to view it again.
+              </p>
+              <p className="modal-note">
+                <strong>Note:</strong> The user will be required to change this password on next login.
+              </p>
+              <button 
+                className="action-btn"
+                onClick={() => setShowPasswordModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Add User Modal */}
+        {showAddUserModal && (
+          <div className="modal-backdrop">
+            <div className="modal-content">
+              <h3>Add New User</h3>
+              <form onSubmit={handleAddNewUser} className="user-edit-form">
+                <div className="form-group">
+                  <label htmlFor="new-email">Email</label>
+                  <input
+                    type="email"
+                    id="new-email"
+                    name="email"
+                    value={newUserData.email}
+                    onChange={handleNewUserInputChange}
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="new-username">Username</label>
+                  <input
+                    type="text"
+                    id="new-username"
+                    name="username"
+                    value={newUserData.username}
+                    onChange={handleNewUserInputChange}
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="new-password">Password</label>
+                  <div className={`password-display-container ${isPasswordEditable ? 'editable' : ''}`}>
+                    {isPasswordEditable ? (
+                      <input
+                        type="text"
+                        id="new-password"
+                        name="password"
+                        value={newUserData.password}
+                        onChange={handleNewUserInputChange}
+                        className="custom-password"
+                        required
+                      />
+                    ) : (
+                      <div className="password-display">
+                        {newUserData.password}
+                      </div>
+                    )}
+                    <button 
+                      type="button" 
+                      className="edit-password-btn"
+                      onClick={togglePasswordEditMode}
+                      title={isPasswordEditable ? "Use generated password" : "Set custom password"}
+                    >
+                      {isPasswordEditable ? <RefreshIcon /> : <PencilIcon />}
+                    </button>
                   </div>
-                ) : (
-                  <div className="password-status-ok">
-                    Password status: OK
-                  </div>
-                )}
-              </div>
-              
-              <div className="form-actions">
-                <div className="action-buttons-left">
+                  
+                  <p className="form-help">
+                    {isCustomPassword ? 
+                      "Custom password will not require a change on first login." : 
+                      "The user will be required to change this password on first login."}
+                  </p>
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="new-role">Role</label>
+                  <select
+                    id="new-role"
+                    name="role"
+                    value={newUserData.role}
+                    onChange={handleNewUserInputChange}
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                
+                <div className="form-actions">
                   <button type="submit" className="action-btn save-btn">
-                    Save Changes
+                    Create User
                   </button>
                   <button 
                     type="button" 
                     className="action-btn password-btn"
-                    onClick={initiatePasswordGeneration}
+                    onClick={() => setShowAddUserModal(false)}
                   >
-                    Generate New Password
+                    Cancel
                   </button>
                 </div>
-                <button
-                  type="button"
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Authentication Modal */}
+        {showAuthModal && (
+          <div className="modal-backdrop">
+            <div className="modal-content">
+              <h3>Authentication Required</h3>
+              <p>
+                Please enter your password to continue with this action.
+              </p>
+              
+              <form onSubmit={handleAuthenticate} className="auth-form">
+                {authError && <div className="auth-error">{authError}</div>}
+                
+                <div className="form-group">
+                  <label htmlFor="admin-password">Your Password</label>
+                  <input
+                    type="password"
+                    id="admin-password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <div className="form-actions">
+                  <button type="submit" className="action-btn save-btn">
+                    Authenticate
+                  </button>
+                  <button 
+                    type="button" 
+                    className="action-btn cancel-btn"
+                    onClick={() => {
+                      setShowAuthModal(false);
+                      setPendingAction(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirmModal && (
+          <div className="modal-backdrop">
+            <div className="modal-content">
+              <h3>Confirm Delete User</h3>
+              <p>
+                Are you sure you want to delete the user <strong>{selectedUser.email}</strong>?
+              </p>
+              <p className="warning-text">
+                This action cannot be undone. All data associated with this user will be permanently deleted.
+              </p>
+              
+              <div className="form-actions">
+                <button 
                   className="action-btn delete-btn"
-                  onClick={initiateDeleteUser}
+                  onClick={handleDeleteUser}
                 >
                   Delete User
                 </button>
-              </div>
-            </form>
-          ) : (
-            <p>Select a user to edit</p>
-          )}
-        </div>
-      </div>
-      
-      {/* Password modal popup */}
-      {showPasswordModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h3>New Password Generated</h3>
-            <p>
-              A new password has been generated for <strong>{selectedUser.email}</strong>:
-            </p>
-            <div className="modal-password-display">
-              {newPassword}
-            </div>
-            <p className="modal-note">
-              Please copy this password now. You won't be able to view it again.
-            </p>
-            <p className="modal-note">
-              <strong>Note:</strong> The user will be required to change this password on next login.
-            </p>
-            <button 
-              className="action-btn"
-              onClick={() => setShowPasswordModal(false)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Add User Modal */}
-      {showAddUserModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h3>Add New User</h3>
-            <form onSubmit={handleAddNewUser} className="user-edit-form">
-              <div className="form-group">
-                <label htmlFor="new-email">Email</label>
-                <input
-                  type="email"
-                  id="new-email"
-                  name="email"
-                  value={newUserData.email}
-                  onChange={handleNewUserInputChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="new-username">Username</label>
-                <input
-                  type="text"
-                  id="new-username"
-                  name="username"
-                  value={newUserData.username}
-                  onChange={handleNewUserInputChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="new-password">Password</label>
-                <div className={`password-display-container ${isPasswordEditable ? 'editable' : ''}`}>
-                  {isPasswordEditable ? (
-                    <input
-                      type="text"
-                      id="new-password"
-                      name="password"
-                      value={newUserData.password}
-                      onChange={handleNewUserInputChange}
-                      className="custom-password"
-                      required
-                    />
-                  ) : (
-                    <div className="password-display">
-                      {newUserData.password}
-                    </div>
-                  )}
-                  <button 
-                    type="button" 
-                    className="edit-password-btn"
-                    onClick={togglePasswordEditMode}
-                    title={isPasswordEditable ? "Use generated password" : "Set custom password"}
-                  >
-                    {isPasswordEditable ? <RefreshIcon /> : <PencilIcon />}
-                  </button>
-                </div>
-                
-                <p className="form-help">
-                  {isCustomPassword ? 
-                    "Custom password will not require a change on first login." : 
-                    "The user will be required to change this password on first login."}
-                </p>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="new-role">Role</label>
-                <select
-                  id="new-role"
-                  name="role"
-                  value={newUserData.role}
-                  onChange={handleNewUserInputChange}
-                >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              
-              <div className="form-actions">
-                <button type="submit" className="action-btn save-btn">
-                  Create User
-                </button>
                 <button 
-                  type="button" 
-                  className="action-btn password-btn"
-                  onClick={() => setShowAddUserModal(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Authentication Modal */}
-      {showAuthModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h3>Authentication Required</h3>
-            <p>
-              Please enter your password to continue with this action.
-            </p>
-            
-            <form onSubmit={handleAuthenticate} className="auth-form">
-              {authError && <div className="auth-error">{authError}</div>}
-              
-              <div className="form-group">
-                <label htmlFor="admin-password">Your Password</label>
-                <input
-                  type="password"
-                  id="admin-password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  required
-                />
-              </div>
-              
-              <div className="form-actions">
-                <button type="submit" className="action-btn save-btn">
-                  Authenticate
-                </button>
-                <button 
-                  type="button" 
                   className="action-btn cancel-btn"
-                  onClick={() => {
-                    setShowAuthModal(false);
-                    setPendingAction(null);
-                  }}
+                  onClick={() => setShowDeleteConfirmModal(false)}
                 >
                   Cancel
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirmModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h3>Confirm Delete User</h3>
-            <p>
-              Are you sure you want to delete the user <strong>{selectedUser.email}</strong>?
-            </p>
-            <p className="warning-text">
-              This action cannot be undone. All data associated with this user will be permanently deleted.
-            </p>
-            
-            <div className="form-actions">
-              <button 
-                className="action-btn delete-btn"
-                onClick={handleDeleteUser}
-              >
-                Delete User
-              </button>
-              <button 
-                className="action-btn cancel-btn"
-                onClick={() => setShowDeleteConfirmModal(false)}
-              >
-                Cancel
-              </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </LoadingSpinner>
   );
 };
 

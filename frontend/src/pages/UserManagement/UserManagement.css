@@ -68,15 +68,39 @@
   max-width: fit-content;
 }
 
-.password-status {
-  display: inline-block;
-  font-size: 0.75rem;
-  color: #e67700;
+/* New exclamation icon for password change required */
+.password-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
   background-color: #fff3cd;
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
-  margin-top: 0.3rem;
-  max-width: fit-content;
+  color: #e67700;
+  font-weight: bold;
+  font-size: 12px;
+  margin-right: 8px;
+  margin-left: 8px;
+}
+
+/* Status indicator with left margin */
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  margin-left: 8px !important; /* Important to override * selector from App.css */
+}
+
+.status-indicator.online {
+  background-color: var(--success-color);
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
+}
+
+.status-indicator.offline {
+  background-color: #aaa;
 }
 
 /* User edit form */
@@ -404,8 +428,6 @@
     margin-top: 0.5rem;
   }
 
-/* Add these styles to your UserManagement.css file */
-
 /* User meta information display */
 .user-meta {
   display: flex;
@@ -424,30 +446,14 @@
   max-width: fit-content;
 }
 
-.status-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 4px;
-}
-
 .online-status.online {
   background-color: rgba(40, 167, 69, 0.1);
   color: var(--success-color);
 }
 
-.online-status.online .status-dot {
-  background-color: var(--success-color);
-}
-
 .online-status.offline {
   background-color: rgba(108, 117, 125, 0.1);
   color: #6c757d;
-}
-
-.online-status.offline .status-dot {
-  background-color: #aaa;
 }
 
 /* User status text in the edit form */

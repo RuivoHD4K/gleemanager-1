@@ -312,7 +312,7 @@ const server = http.createServer((req, res) => {
     req.on("data", (chunk) => {
       body += chunk;
     });
-
+  
     req.on("end", async () => {
       try {
         const userData = JSON.parse(body);
@@ -352,7 +352,6 @@ const server = http.createServer((req, res) => {
         const passwordHash = hashPassword(userData.password, salt);
         
         // Create the user object (without the plain password)
-        // Add default role as "user" and set mustChangePassword flag to true
         const user = {
           userId,
           email: userData.email,
@@ -361,40 +360,31 @@ const server = http.createServer((req, res) => {
           createdAt: userData.createdAt,
           username: userData.username || userData.email.split('@')[0],
           role: userData.role || "user", // Default role for new users
-          mustChangePassword: userData.mustChangePassword !== undefined ? userData.mustChangePassword : true // Default to true if not specified
+          mustChangePassword: userData.mustChangePassword !== undefined ? userData.mustChangePassword : true, // Default to true if not specified
+          isOnline: false, // Explicitly set new users to offline
+          lastSeen: new Date().toISOString() // Set last seen to creation time
         };
         
         const params = new PutCommand({
           TableName: "Users",
           Item: user
         });
-
+  
         await dynamoDB.send(params);
-
-        // Generate a token for immediate login
-        const token = generateToken();
-        tokenStore.set(token, {
-          userId,
-          expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-        });
-        
-        // Save session to disk
-        saveSessionsToDisk();
-        
-        // Mark user as online
-        updateOnlineStatus(userId, true);
-
+  
+        // Return success without creating a token and marking online
+        // The user will need to log in separately
         res.writeHead(201, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ 
           message: "User created successfully",
-          token,
           user: { 
             userId,
             email: user.email,
             username: user.username,
             createdAt: user.createdAt,
             role: user.role, // Include role in the response
-            mustChangePassword: user.mustChangePassword // Include flag in response
+            mustChangePassword: user.mustChangePassword, // Include flag in response
+            isOnline: false // Return the offline status
           }
         }));
       } catch (err) {
@@ -403,7 +393,7 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: err.message }));
       }
     });
-  } 
+  }
   
   // Get all users (protected route)
   else if (req.method === "GET" && req.url === "/users") {
@@ -706,6 +696,7 @@ const server = http.createServer((req, res) => {
     });
   }
   
+  
   // Delete a user
   else if (req.method === "DELETE" && req.url.match(/^\/users\/[^\/]+$/)) {
     // Extract userId from URL
@@ -753,6 +744,220 @@ const server = http.createServer((req, res) => {
       }
     })();
   }
+
+  // Add these endpoints to your server.js file after your existing user management endpoints
+
+// Get all projects
+else if (req.method === "GET" && req.url === "/projects") {
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+
+  const params = new ScanCommand({ TableName: "Projects" });
+
+  dynamoDB.send(params)
+    .then((data) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(data.Items || []));
+    })
+    .catch((err) => {
+      console.error("Error fetching projects:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
+
+// Get a single project by ID
+else if (req.method === "GET" && req.url.match(/^\/projects\/[^\/]+$/)) {
+  // Extract projectId from URL
+  const projectId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Get project by primary key (projectId)
+  const params = new GetCommand({
+    TableName: "Projects",
+    Key: {
+      projectId: projectId
+    }
+  });
+  
+  dynamoDB.send(params)
+    .then((data) => {
+      if (!data.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Project not found" }));
+      }
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(data.Item));
+    })
+    .catch((err) => {
+      console.error("Error fetching project:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
+
+// Create a new project
+else if (req.method === "POST" && req.url === "/projects") {
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+
+  req.on("end", async () => {
+    try {
+      const projectData = JSON.parse(body);
+      
+      // Validate project input
+      if (!projectData.projectName || !projectData.projectStartDate) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Project name and start date are required" }));
+      }
+      
+      // Check if token is valid
+      if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Unauthorized" }));
+      }
+      
+      // Generate unique project ID
+      const projectId = "proj-" + uuidv4().substring(0, 8);
+      
+      // Get the userId of the creator from the token
+      const userId = tokenStore.get(token).userId;
+      
+      // Create the project object
+      const project = {
+        projectId,
+        projectName: projectData.projectName,
+        projectStartDate: projectData.projectStartDate,
+        projectEndDate: projectData.projectEndDate || null,
+        createdBy: userId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      const params = new PutCommand({
+        TableName: "Projects",
+        Item: project
+      });
+
+      await dynamoDB.send(params);
+
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ 
+        message: "Project created successfully",
+        project
+      }));
+    } catch (err) {
+      console.error("Error creating project:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
+
+// Update a project
+else if (req.method === "PUT" && req.url.match(/^\/projects\/[^\/]+$/)) {
+  // Extract projectId from URL
+  const projectId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+
+  req.on("end", async () => {
+    try {
+      const projectData = JSON.parse(body);
+      
+      // First, get the existing project
+      const getParams = new GetCommand({
+        TableName: "Projects",
+        Key: {
+          projectId: projectId
+        }
+      });
+      
+      const existingProjectResult = await dynamoDB.send(getParams);
+      
+      if (!existingProjectResult.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Project not found" }));
+      }
+      
+      const existingProject = existingProjectResult.Item;
+      
+      // Update the project object
+      const updatedProject = {
+        ...existingProject,
+        projectName: projectData.projectName || existingProject.projectName,
+        projectStartDate: projectData.projectStartDate || existingProject.projectStartDate,
+        projectEndDate: projectData.projectEndDate !== undefined ? projectData.projectEndDate : existingProject.projectEndDate,
+        updatedAt: new Date().toISOString()
+      };
+      
+      const updateParams = new PutCommand({
+        TableName: "Projects",
+        Item: updatedProject
+      });
+      
+      await dynamoDB.send(updateParams);
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(updatedProject));
+    } catch (err) {
+      console.error("Error updating project:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
+
+// Delete a project
+else if (req.method === "DELETE" && req.url.match(/^\/projects\/[^\/]+$/)) {
+  // Extract projectId from URL
+  const projectId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+
+  // Use DeleteCommand with projectId as the primary key
+  const deleteParams = new DeleteCommand({
+    TableName: "Projects",
+    Key: {
+      projectId: projectId
+    }
+  });
+  
+  dynamoDB.send(deleteParams)
+    .then(() => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Project deleted successfully" }));
+    })
+    .catch((err) => {
+      console.error("Error deleting project:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
   
   // 404 Not Found for all other routes
   else {
