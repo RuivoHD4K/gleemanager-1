@@ -11,13 +11,23 @@ const ProjectManagement = () => {
   const [formData, setFormData] = useState({
     projectName: "",
     projectStartDate: "",
-    projectEndDate: ""
+    projectEndDate: "",
+    company: "",
+    description: ""
   });
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const [newProjectData, setNewProjectData] = useState({
     projectName: "",
     projectStartDate: "",
-    projectEndDate: ""
+    projectEndDate: "",
+    company: "",
+    description: ""
+  });
+
+  // Character count state
+  const [charCount, setCharCount] = useState({
+    company: 0,
+    description: 0
   });
 
   // Delete confirmation modal state
@@ -28,13 +38,6 @@ const ProjectManagement = () => {
   // Fetch projects on component mount
   useEffect(() => {
     fetchProjects();
-    
-    // Set up interval to refresh project data every 30 seconds
-    const intervalId = setInterval(() => {
-      fetchProjects(false); // Don't show loading state for background refreshes
-    }, 30000);
-    
-    return () => clearInterval(intervalId); // Clean up on unmount
   }, []);
 
   // Update form data when a project is selected
@@ -42,23 +45,19 @@ const ProjectManagement = () => {
     if (selectedProject) {
       setFormData({
         projectName: selectedProject.projectName || "",
-        projectStartDate: formatDateForInput(selectedProject.projectStartDate) || "",
-        projectEndDate: formatDateForInput(selectedProject.projectEndDate) || ""
+        projectStartDate: selectedProject.projectStartDate || "",
+        projectEndDate: selectedProject.projectEndDate || "",
+        company: selectedProject.company || "",
+        description: selectedProject.description || ""
+      });
+      
+      // Update character counts
+      setCharCount({
+        company: (selectedProject.company || "").length,
+        description: (selectedProject.description || "").length
       });
     }
   }, [selectedProject]);
-
-  // Format date string for input fields (YYYY-MM-DD)
-  const formatDateForInput = (dateString) => {
-    if (!dateString) return "";
-    
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    
-    return `${year}-${month}-${day}`;
-  };
 
   const fetchProjects = async (showLoading = true) => {
     try {
@@ -120,13 +119,28 @@ const ProjectManagement = () => {
       if (showLoading) {
         setTimeout(() => {
           setLoading(false);
-        }, 500); // Minimum loading time for better UX
+        }, 100); // Minimum loading time for better UX
       }
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Update character counts for limited fields
+    if (name === "company" || name === "description") {
+      setCharCount(prev => ({
+        ...prev,
+        [name]: value.length
+      }));
+      
+      // Prevent exceeding the max length
+      if ((name === "company" && value.length > 50) || 
+          (name === "description" && value.length > 500)) {
+        return;
+      }
+    }
+    
     setFormData({
       ...formData,
       [name]: value
@@ -135,6 +149,13 @@ const ProjectManagement = () => {
 
   const handleNewProjectInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Prevent exceeding the max length for new project data
+    if ((name === "company" && value.length > 50) || 
+        (name === "description" && value.length > 500)) {
+      return;
+    }
+    
     setNewProjectData({
       ...newProjectData,
       [name]: value
@@ -147,14 +168,14 @@ const ProjectManagement = () => {
 
   const handleCreateNewProject = () => {
     // Reset form data for new project
-    const today = new Date();
-    const defaultEndDate = new Date();
-    defaultEndDate.setMonth(today.getMonth() + 3); // Default to 3 months from now
+    const today = new Date().toLocaleDateString('en-GB'); // DD/MM/YYYY format
     
     setNewProjectData({
       projectName: "",
-      projectStartDate: formatDateForInput(today),
-      projectEndDate: formatDateForInput(defaultEndDate)
+      projectStartDate: today,
+      projectEndDate: "",
+      company: "",
+      description: ""
     });
     
     setShowAddProjectModal(true);
@@ -182,7 +203,9 @@ const ProjectManagement = () => {
         body: JSON.stringify({
           projectName: newProjectData.projectName,
           projectStartDate: newProjectData.projectStartDate,
-          projectEndDate: newProjectData.projectEndDate || null
+          projectEndDate: newProjectData.projectEndDate || null,
+          company: newProjectData.company || "",
+          description: newProjectData.description || ""
         })
       });
       
@@ -226,7 +249,9 @@ const ProjectManagement = () => {
         body: JSON.stringify({
           projectName: formData.projectName,
           projectStartDate: formData.projectStartDate,
-          projectEndDate: formData.projectEndDate || null
+          projectEndDate: formData.projectEndDate || null,
+          company: formData.company || "",
+          description: formData.description || ""
         })
       });
       
@@ -297,15 +322,7 @@ const ProjectManagement = () => {
     }, 5000);
   };
 
-  // Format date for display
-  const formatDateForDisplay = (dateString) => {
-    if (!dateString) return "Not set";
-    
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
-
-  return (
+   return (
     <LoadingSpinner isLoading={loading}>
       <div className="project-management-container">
         <div className="page-header">
@@ -343,8 +360,11 @@ const ProjectManagement = () => {
                           <span className="project-name">{project.projectName}</span>
                           <div className="project-dates">
                             <span>
-                              {formatDateForDisplay(project.projectStartDate)} - {formatDateForDisplay(project.projectEndDate)}
+                              {project.projectStartDate} - {project.projectEndDate || "Not set"}
                             </span>
+                            {project.company && (
+                              <div className="project-company">{project.company}</div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -373,27 +393,58 @@ const ProjectManagement = () => {
                 </div>
                 
                 <div className="form-group">
+                  <label htmlFor="company">Company</label>
+                  <input
+                    type="text"
+                    id="company"
+                    name="company"
+                    value={formData.company}
+                    onChange={handleInputChange}
+
+                  />
+                </div>
+                
+                <div className="form-group">
                   <label htmlFor="projectStartDate">Start Date</label>
                   <input
-                    type="date"
+                    type="text"
                     id="projectStartDate"
                     name="projectStartDate"
                     value={formData.projectStartDate}
                     onChange={handleInputChange}
                     required
+                    placeholder="DD/MM/YYYY"
                   />
                 </div>
                 
                 <div className="form-group">
                   <label htmlFor="projectEndDate">End Date</label>
                   <input
-                    type="date"
+                    type="text"
                     id="projectEndDate"
                     name="projectEndDate"
                     value={formData.projectEndDate}
                     onChange={handleInputChange}
+                    placeholder="DD/MM/YYYY"
                   />
                   <p className="form-help">Leave empty if the end date is unknown.</p>
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="description">Project Description</label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows={4}
+                    maxLength={500}
+                  />
+                  <div className="char-counter">
+                    <span className={charCount.description > 450 ? "warning" : ""}>
+                      {charCount.description}/500
+                    </span>
+                  </div>
                 </div>
                 
                 <div className="project-details">
@@ -415,10 +466,14 @@ const ProjectManagement = () => {
                   </button>
                 </div>
               </form>
+              
+              
+              
             ) : (
               <p>Select a project to edit</p>
             )}
           </div>
+          
         </div>
         
         {/* Add Project Modal */}
@@ -440,27 +495,57 @@ const ProjectManagement = () => {
                 </div>
                 
                 <div className="form-group">
+                  <label htmlFor="new-company">Company</label>
+                  <input
+                    type="text"
+                    id="new-company"
+                    name="company"
+                    value={newProjectData.company}
+                    onChange={handleNewProjectInputChange}
+                  />
+                </div>
+                
+                <div className="form-group">
                   <label htmlFor="new-start-date">Start Date</label>
                   <input
-                    type="date"
+                    type="text"
                     id="new-start-date"
                     name="projectStartDate"
                     value={newProjectData.projectStartDate}
                     onChange={handleNewProjectInputChange}
                     required
+                    placeholder="DD/MM/YYYY"
                   />
                 </div>
                 
                 <div className="form-group">
                   <label htmlFor="new-end-date">End Date</label>
                   <input
-                    type="date"
+                    type="text"
                     id="new-end-date"
                     name="projectEndDate"
                     value={newProjectData.projectEndDate}
                     onChange={handleNewProjectInputChange}
+                    placeholder="DD/MM/YYYY"
                   />
                   <p className="form-help">Leave empty if the end date is unknown.</p>
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="new-description">Project Description</label>
+                  <textarea
+                    id="new-description"
+                    name="description"
+                    value={newProjectData.description}
+                    onChange={handleNewProjectInputChange}
+                    rows={4}
+                    maxLength={500}
+                  />
+                  <div className="char-counter">
+                    <span className={newProjectData.description.length > 450 ? "warning" : ""}>
+                      {newProjectData.description.length}/500
+                    </span>
+                  </div>
                 </div>
                 
                 <div className="form-actions">

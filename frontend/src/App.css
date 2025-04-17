@@ -259,4 +259,81 @@ body {
   .stats-content {
     grid-template-columns: 1fr 1fr;
   }
+
+}
+
+.app-drawer {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+}
+
+.drawer-item {
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: white;
+  border-radius: 8px;
+  padding: 1rem;
+  width: 150px;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.drawer-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.drawer-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--gray-bg);
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 0.5rem;
+  color: var(--primary-color);
+}
+
+.drawer-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  color: var(--text-color);
+}
+
+/* Ensure the drawer is scrollable on smaller screens */
+@media (max-width: 768px) {
+  .app-drawer {
+    padding-bottom: 1rem;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  }
+  
+  .drawer-item {
+    min-width: 100px;
+  }
+}
+
+/* Status indicators in UsersList */
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-indicator.online {
+  background-color: var(--success-color);
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
+}
+
+.status-indicator.offline {
+  background-color: #aaa;
 }

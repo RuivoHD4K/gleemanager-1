@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 // Import appropriate icons from Lucide React
@@ -19,6 +19,18 @@ const Sidebar = ({ userRole, isSidebarCollapsed }) => {
   
   // State to manage dashboard submenu
   const [isDashboardSubmenuOpen, setIsDashboardSubmenuOpen] = useState(false);
+  // State to track closing animation
+  const [isClosing, setIsClosing] = useState(false);
+  
+  // Reference to the submenu element for direct DOM manipulation during animations
+  const submenuRef = useRef(null);
+  
+  // State to save submenu state when sidebar is collapsed
+  const [savedSubmenuState, setSavedSubmenuState] = useState(false);
+  const [prevSidebarCollapsed, setPrevSidebarCollapsed] = useState(isSidebarCollapsed);
+  
+  // Check if submenu has items based on user role
+  const hasSubmenuItems = userRole === 'admin';
   
   // Get current location to check active routes
   const location = useLocation();
@@ -29,46 +41,81 @@ const Sidebar = ({ userRole, isSidebarCollapsed }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isSidebarCollapsed) {
-      setIsDashboardSubmenuOpen(!isDashboardSubmenuOpen);
+    if (!isSidebarCollapsed && hasSubmenuItems) {
+      if (isDashboardSubmenuOpen) {
+        // Start the closing animation first
+        setIsClosing(true);
+        
+        // Then after the animation duration, actually close the submenu
+        setTimeout(() => {
+          setIsDashboardSubmenuOpen(false);
+          setIsClosing(false);
+        }, 600); // Match this to CSS transition time
+      } else {
+        // Simply open the submenu
+        setIsDashboardSubmenuOpen(true);
+      }
     }
   };
   
-  // Effect to handle submenu state when sidebar is collapsed
+  // Effect to handle submenu state when sidebar is collapsed/expanded
   useEffect(() => {
-    if (isSidebarCollapsed) {
-      // Automatically close submenu when sidebar collapses
-      setIsDashboardSubmenuOpen(false);
+    // If sidebar state changed
+    if (prevSidebarCollapsed !== isSidebarCollapsed) {
+      if (isSidebarCollapsed) {
+        // Save current submenu state before collapsing
+        setSavedSubmenuState(isDashboardSubmenuOpen);
+        
+        // Start closing animation only if submenu is open
+        if (isDashboardSubmenuOpen) {
+          setIsClosing(true);
+          
+          // Wait for animation to complete before actually changing state
+          setTimeout(() => {
+            setIsDashboardSubmenuOpen(false);
+            setIsClosing(false);
+          }, 600); // Match to CSS transition duration
+        }
+      } else {
+        // When expanding, restore previous state after a short delay
+        setTimeout(() => {
+          setIsDashboardSubmenuOpen(savedSubmenuState);
+        }, 150);
+      }
+      // Update previous sidebar state
+      setPrevSidebarCollapsed(isSidebarCollapsed);
     }
-  }, [isSidebarCollapsed]);
+  }, [isSidebarCollapsed, prevSidebarCollapsed, isDashboardSubmenuOpen, savedSubmenuState]);
   
-  // Effect to open submenu if any submenu route is active
+  // Effect to open submenu only on initial load or route change
   useEffect(() => {
-    if (!isSidebarCollapsed) {
-      const submenuRoutes = ['/', '/user-management', '/project-management'];
+    if (!isSidebarCollapsed && hasSubmenuItems) {
+      const submenuRoutes = ['/user-management', '/project-management'];
       const isSubmenuRouteActive = submenuRoutes.some(route => 
         location.pathname.startsWith(route)
       );
       
-      // Automatically open submenu if a submenu route is active
+      // Automatically open submenu if a submenu route is active, but only on initial render or route change
       if (isSubmenuRouteActive) {
         setIsDashboardSubmenuOpen(true);
       }
     }
-  }, [location.pathname, isSidebarCollapsed]);
+  }, [location.pathname, hasSubmenuItems, isSidebarCollapsed]);
   
   return (
     <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
       <nav className="sidebar-nav">
         <NavLink 
           to="/" 
-          className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}
+          className={({isActive}) => 
+            `nav-link ${isActive ? 'active' : ''} ${isDashboardSubmenuOpen ? 'submenu-expanded' : ''}`
+          }
         >
           <span className="nav-icon">
             <LayoutDashboard size={iconSize} />
           </span>
           <span className="nav-text">Dashboard</span>
-          {!isSidebarCollapsed && (
+          {!isSidebarCollapsed && hasSubmenuItems && (
             <span 
               onClick={toggleDashboardSubmenu} 
               style={{ 
@@ -85,7 +132,10 @@ const Sidebar = ({ userRole, isSidebarCollapsed }) => {
         </NavLink>
         
         {!isSidebarCollapsed && (
-          <div className={`dashboard-submenu ${isDashboardSubmenuOpen ? 'open' : ''}`}>
+          <div 
+            ref={submenuRef} 
+            className={`dashboard-submenu ${isDashboardSubmenuOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`}
+          >
             {userRole === 'admin' && (
             <NavLink to="/user-management" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
               <span className="nav-icon">
@@ -111,12 +161,6 @@ const Sidebar = ({ userRole, isSidebarCollapsed }) => {
           <span className="nav-text">My Profile</span>
         </NavLink>
         
-        <NavLink to="/help" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
-          <span className="nav-icon">
-            <HelpCircle size={iconSize} />
-          </span>
-          <span className="nav-text">Help</span>
-        </NavLink>
       </nav>
       
       <div className="sidebar-footer">

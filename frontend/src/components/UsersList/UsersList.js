@@ -76,13 +76,13 @@ const UsersList = ({ onlyShowOnline = false }) => {
     return `${day}/${month}/${year}`;
   };
 
-  // Format the time elapsed since last seen
-  const formatLastSeen = (lastSeenDate) => {
-    if (!lastSeenDate) return "Never";
+  // Format the time elapsed since a given timestamp
+  const formatTimeElapsed = (timestamp) => {
+    if (!timestamp) return "Never";
     
-    const lastSeen = new Date(lastSeenDate);
+    const date = new Date(timestamp);
     const now = new Date();
-    const diffMs = now - lastSeen;
+    const diffMs = now - date;
     
     // Less than a minute
     if (diffMs < 60000) {
@@ -102,7 +102,18 @@ const UsersList = ({ onlyShowOnline = false }) => {
     }
     
     // More than a day, show the date in DD/MM/YYYY format
-    return formatDate(lastSeenDate);
+    return formatDate(timestamp);
+  };
+
+  // Format the status text for the user
+  const formatStatusText = (user) => {
+    if (user.isOnline) {
+      return 'Online';
+    } else if (user.lastLogin) {
+      return `Last login: ${formatTimeElapsed(user.lastLogin)}`;
+    } else {
+      return `Last seen: ${formatTimeElapsed(user.lastSeen)}`;
+    }
   };
 
   // Exclamation Icon for password warning
@@ -152,7 +163,7 @@ const UsersList = ({ onlyShowOnline = false }) => {
                       <td className="status-col">
                         <span className={`status-indicator ${user.isOnline ? 'online' : 'offline'}`}></span>
                         <span className="status-text">
-                          {user.isOnline ? 'Online' : `Last seen: ${formatLastSeen(user.lastSeen)}`}
+                          {formatStatusText(user)}
                         </span>
                       </td>
                     )}

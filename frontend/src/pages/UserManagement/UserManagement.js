@@ -38,17 +38,9 @@ const UserManagement = () => {
   const [isPasswordEditable, setIsPasswordEditable] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch users on component mount and every 10 seconds
-  useEffect(() => {
+  useEffect(() =>  {
     fetchUsers();
-    
-    // Set up interval to refresh user data every 10 seconds
-    const intervalId = setInterval(() => {
-      fetchUsers(false); // Don't show loading state for background refreshes
-    }, 10000);
-    
-    return () => clearInterval(intervalId); // Clean up on unmount
-  }, []);
+  }, [] );
 
   const fetchUsers = async (showLoading = true) => {
     try {
@@ -106,7 +98,7 @@ const UserManagement = () => {
         // Add a slight delay to ensure minimum loading time for UX
         setTimeout(() => {
           setLoading(false);
-        }, 500);
+        }, 100);
       }
     }
   };

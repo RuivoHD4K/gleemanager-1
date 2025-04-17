@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import UsersList from '../../components/UsersList/UsersList';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { Users, FolderKanban } from 'lucide-react';
-import './AdminDashboard.css';
 
 const AdminDashboard = () => {  
   const navigate = useNavigate();
@@ -58,19 +57,19 @@ const AdminDashboard = () => {
           });
         }
         
-        if (!activityResponse.ok) {
+        /*if (!activityResponse.ok) {
           // Mock activity data
           setRecentActivity([
             "User john@example.com logged in (2 min ago)",
             "New user registered: jane@example.com (15 min ago)",
             "Password reset for bob@example.com (1 hour ago)"
           ]);
-        }
+        }*/
         
         // Add slight delay to ensure minimum loading time for better UX
         setTimeout(() => {
           setLoading(false);
-        }, 500);
+        }, 50);
         
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -114,7 +113,11 @@ const AdminDashboard = () => {
           </div>
         </div>
         
-        {/* App Drawer */}
+        
+        
+        <div className="dashboard-grid">
+
+          {/* App Drawer */}
         <div className="app-drawer">
           <div className="drawer-item" onClick={() => navigate("/user-management")}>
             <div className="drawer-icon">
@@ -128,25 +131,7 @@ const AdminDashboard = () => {
             </div>
             <span className="drawer-label">Project Management</span>
           </div>
-        </div>
-        
-        <div className="dashboard-grid">
-          <div className="dashboard-card stats-card">
-            <h3>System Statistics</h3>
-            <div className="stats-content">
-              <div className="stat-item">
-                <span className="stat-label">Total Users</span>
-                <span className="stat-value">{stats.totalUsers}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Active Today</span>
-                <span className="stat-value">{stats.activeToday}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">New This Week</span>
-                <span className="stat-value">{stats.newThisWeek}</span>
-              </div>
-            </div>
+          
           </div>
           
           <div className="dashboard-card">

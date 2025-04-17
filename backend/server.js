@@ -25,6 +25,25 @@ function generateToken() {
   return crypto.randomBytes(32).toString("hex");
 }
 
+function formatDate(dateString) {
+  if (!dateString) return null;
+  
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+}
+
+// Parse date from DD/MM/YYYY to ISO format for storage
+function parseDate(formattedDate) {
+  if (!formattedDate) return null;
+  
+  const [day, month, year] = formattedDate.split('/');
+  return new Date(year, month - 1, day).toISOString();
+}
+
 // Session storage file path
 const SESSION_FILE_PATH = path.join(__dirname, "sessions.json");
 
@@ -203,6 +222,8 @@ const server = http.createServer((req, res) => {
     token = authHeader.substring(7);
   }
 
+
+
   // Root endpoint
   if (req.method === "GET" && req.url === "/") {
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -275,6 +296,22 @@ const server = http.createServer((req, res) => {
           // Save session to disk after adding a new session
           saveSessionsToDisk();
           
+          // Update the user's lastLogin field before setting them as online
+          // Read current lastSeen (if any) before updating it
+          const previousLogin = user.lastSeen;
+          
+          // Update user record in DynamoDB to include lastLogin timestamp
+          const updateUserParams = new PutCommand({
+            TableName: "Users",
+            Item: {
+              ...user,
+              lastLogin: previousLogin || null, // Use previous lastSeen as lastLogin
+              lastSeen: new Date().toISOString() // Update lastSeen to current time
+            }
+          });
+          
+          await dynamoDB.send(updateUserParams);
+          
           // Mark user as online
           updateOnlineStatus(user.userId, true);
           
@@ -287,6 +324,7 @@ const server = http.createServer((req, res) => {
               email: user.email,
               username: user.username,
               createdAt: user.createdAt,
+              lastLogin: previousLogin || null, // Include lastLogin in response
               role: user.role || "user", // Include the role in the response
               mustChangePassword: user.mustChangePassword || false // Include flag in response
             }
@@ -362,7 +400,8 @@ const server = http.createServer((req, res) => {
           role: userData.role || "user", // Default role for new users
           mustChangePassword: userData.mustChangePassword !== undefined ? userData.mustChangePassword : true, // Default to true if not specified
           isOnline: false, // Explicitly set new users to offline
-          lastSeen: new Date().toISOString() // Set last seen to creation time
+          lastSeen: new Date().toISOString(), // Set last seen to creation time
+          lastLogin: null // Initialize lastLogin as null for new users
         };
         
         const params = new PutCommand({
@@ -384,7 +423,8 @@ const server = http.createServer((req, res) => {
             createdAt: user.createdAt,
             role: user.role, // Include role in the response
             mustChangePassword: user.mustChangePassword, // Include flag in response
-            isOnline: false // Return the offline status
+            isOnline: false, // Return the offline status
+            lastLogin: null // Include null lastLogin for new users
           }
         }));
       } catch (err) {
@@ -416,7 +456,8 @@ const server = http.createServer((req, res) => {
           return {
             ...safeUser,
             isOnline: onlineStatus ? onlineStatus.isOnline : false,
-            lastSeen: onlineStatus ? onlineStatus.lastUpdated : null
+            lastSeen: onlineStatus ? onlineStatus.lastUpdated : null,
+            lastLogin: safeUser.lastLogin || null // Ensure lastLogin is included
           };
         });
         
@@ -464,7 +505,8 @@ const server = http.createServer((req, res) => {
         const userWithStatus = {
           ...safeUser,
           isOnline: onlineStatus ? onlineStatus.isOnline : false,
-          lastSeen: onlineStatus ? onlineStatus.lastUpdated : null
+          lastSeen: onlineStatus ? onlineStatus.lastUpdated : null,
+          lastLogin: safeUser.lastLogin || null // Ensure lastLogin is included
         };
         
         res.writeHead(200, { "Content-Type": "application/json" });
@@ -559,7 +601,9 @@ const server = http.createServer((req, res) => {
           // Only update mustChangePassword if it's explicitly provided
           mustChangePassword: userData.mustChangePassword !== undefined 
             ? userData.mustChangePassword 
-            : existingUser.mustChangePassword
+            : existingUser.mustChangePassword,
+          // Preserve the lastLogin field
+          lastLogin: existingUser.lastLogin || null
         };
         
         console.log("Updating user to:", updatedUser);
@@ -654,7 +698,9 @@ const server = http.createServer((req, res) => {
           ...user,
           passwordHash,
           salt,
-          mustChangePassword: isSelfChange ? false : true // Only set to false if user is changing their own password
+          mustChangePassword: isSelfChange ? false : true, // Only set to false if user is changing their own password
+          // Preserve the lastLogin field
+          lastLogin: user.lastLogin || null
         };
         
         console.log("Updating password for user:", user.email);
@@ -759,8 +805,15 @@ else if (req.method === "GET" && req.url === "/projects") {
 
   dynamoDB.send(params)
     .then((data) => {
+      // Format dates for all projects
+      const formattedProjects = (data.Items || []).map(project => ({
+        ...project,
+        projectStartDate: formatDate(project.projectStartDate),
+        projectEndDate: project.projectEndDate ? formatDate(project.projectEndDate) : null
+      }));
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(data.Items || []));
+      res.end(JSON.stringify(formattedProjects));
     })
     .catch((err) => {
       console.error("Error fetching projects:", err);
@@ -795,8 +848,15 @@ else if (req.method === "GET" && req.url.match(/^\/projects\/[^\/]+$/)) {
         return res.end(JSON.stringify({ error: "Project not found" }));
       }
       
+      // Format dates for the project
+      const formattedProject = {
+        ...data.Item,
+        projectStartDate: formatDate(data.Item.projectStartDate),
+        projectEndDate: data.Item.projectEndDate ? formatDate(data.Item.projectEndDate) : null
+      };
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(data.Item));
+      res.end(JSON.stringify(formattedProject));
     })
     .catch((err) => {
       console.error("Error fetching project:", err);
@@ -822,6 +882,18 @@ else if (req.method === "POST" && req.url === "/projects") {
         return res.end(JSON.stringify({ error: "Project name and start date are required" }));
       }
       
+      // Validate company field length
+      if (projectData.company && projectData.company.length > 50) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Company name must be 50 characters or less" }));
+      }
+      
+      // Validate description field length
+      if (projectData.description && projectData.description.length > 500) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Description must be 500 characters or less" }));
+      }
+      
       // Check if token is valid
       if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
         res.writeHead(401, { "Content-Type": "application/json" });
@@ -834,12 +906,38 @@ else if (req.method === "POST" && req.url === "/projects") {
       // Get the userId of the creator from the token
       const userId = tokenStore.get(token).userId;
       
-      // Create the project object
-      const project = {
-        projectId,
-        projectName: projectData.projectName,
-        projectStartDate: projectData.projectStartDate,
-        projectEndDate: projectData.projectEndDate || null,
+// Parse date format if needed (DD/MM/YYYY to ISO format)
+let startDate, endDate;
+
+try {
+  if (projectData.projectStartDate.includes('/')) {
+    const [day, month, year] = projectData.projectStartDate.split('/');
+    startDate = new Date(year, month - 1, day).toISOString();
+  } else {
+    startDate = new Date(projectData.projectStartDate).toISOString();
+  }
+  
+  if (projectData.projectEndDate && projectData.projectEndDate.includes('/')) {
+    const [day, month, year] = projectData.projectEndDate.split('/');
+    endDate = new Date(year, month - 1, day).toISOString();
+  } else if (projectData.projectEndDate) {
+    endDate = new Date(projectData.projectEndDate).toISOString();
+  } else {
+    endDate = null;
+  }
+} catch (err) {
+  res.writeHead(400, { "Content-Type": "application/json" });
+  return res.end(JSON.stringify({ error: "Invalid date format. Please use DD/MM/YYYY." }));
+}
+
+// Create the project object with new fields
+const project = {
+  projectId,
+  projectName: projectData.projectName,
+  projectStartDate: startDate,
+  projectEndDate: endDate,
+        company: projectData.company || "",
+        description: projectData.description || "",
         createdBy: userId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -852,10 +950,17 @@ else if (req.method === "POST" && req.url === "/projects") {
 
       await dynamoDB.send(params);
 
+      // Format dates for response
+      const responseProject = {
+        ...project,
+        projectStartDate: formatDate(project.projectStartDate),
+        projectEndDate: project.projectEndDate ? formatDate(project.projectEndDate) : null
+      };
+
       res.writeHead(201, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ 
         message: "Project created successfully",
-        project
+        project: responseProject
       }));
     } catch (err) {
       console.error("Error creating project:", err);
@@ -885,6 +990,18 @@ else if (req.method === "PUT" && req.url.match(/^\/projects\/[^\/]+$/)) {
     try {
       const projectData = JSON.parse(body);
       
+      // Validate company field length
+      if (projectData.company && projectData.company.length > 50) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Company name must be 50 characters or less" }));
+      }
+      
+      // Validate description field length
+      if (projectData.description && projectData.description.length > 500) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Description must be 500 characters or less" }));
+      }
+      
       // First, get the existing project
       const getParams = new GetCommand({
         TableName: "Projects",
@@ -902,12 +1019,43 @@ else if (req.method === "PUT" && req.url.match(/^\/projects\/[^\/]+$/)) {
       
       const existingProject = existingProjectResult.Item;
       
-      // Update the project object
-      const updatedProject = {
-        ...existingProject,
-        projectName: projectData.projectName || existingProject.projectName,
-        projectStartDate: projectData.projectStartDate || existingProject.projectStartDate,
-        projectEndDate: projectData.projectEndDate !== undefined ? projectData.projectEndDate : existingProject.projectEndDate,
+// Parse dates if needed
+let startDate = existingProject.projectStartDate;
+let endDate = existingProject.projectEndDate;
+
+try {
+  if (projectData.projectStartDate) {
+    if (projectData.projectStartDate.includes('/')) {
+      const [day, month, year] = projectData.projectStartDate.split('/');
+      startDate = new Date(year, month - 1, day).toISOString();
+    } else {
+      startDate = new Date(projectData.projectStartDate).toISOString();
+    }
+  }
+  
+  if (projectData.projectEndDate !== undefined) {
+    if (projectData.projectEndDate && projectData.projectEndDate.includes('/')) {
+      const [day, month, year] = projectData.projectEndDate.split('/');
+      endDate = new Date(year, month - 1, day).toISOString();
+    } else if (projectData.projectEndDate) {
+      endDate = new Date(projectData.projectEndDate).toISOString();
+    } else {
+      endDate = null;
+    }
+  }
+} catch (err) {
+  res.writeHead(400, { "Content-Type": "application/json" });
+  return res.end(JSON.stringify({ error: "Invalid date format. Please use DD/MM/YYYY." }));
+}
+
+// Update the project object
+const updatedProject = {
+  ...existingProject,
+  projectName: projectData.projectName || existingProject.projectName,
+  projectStartDate: startDate,
+  projectEndDate: endDate,
+        company: projectData.company !== undefined ? projectData.company : (existingProject.company || ""),
+        description: projectData.description !== undefined ? projectData.description : (existingProject.description || ""),
         updatedAt: new Date().toISOString()
       };
       
@@ -918,8 +1066,15 @@ else if (req.method === "PUT" && req.url.match(/^\/projects\/[^\/]+$/)) {
       
       await dynamoDB.send(updateParams);
       
+      // Format dates for response
+      const responseProject = {
+        ...updatedProject,
+        projectStartDate: formatDate(updatedProject.projectStartDate),
+        projectEndDate: updatedProject.projectEndDate ? formatDate(updatedProject.projectEndDate) : null
+      };
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(updatedProject));
+      res.end(JSON.stringify(responseProject));
     } catch (err) {
       console.error("Error updating project:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
