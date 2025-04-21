@@ -427,7 +427,7 @@
   .delete-btn {
     margin-top: 0.5rem;
   }
-
+}
 /* User meta information display */
 .user-meta {
   display: flex;
@@ -466,4 +466,7 @@
   color: var(--text-color);
   font-size: 0.9rem;
 }
-}
+
+
+
+

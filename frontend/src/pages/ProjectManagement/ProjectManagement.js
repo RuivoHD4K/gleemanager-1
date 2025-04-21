@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import LoadingSpinner from "../../components/LoadingSpinner/LoadingSpinner";
+import { useToast } from "../../components/Toast/ToastContext";
 import "./ProjectManagement.css";
 
 const ProjectManagement = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
+  const toast = useToast();
   const [selectedProject, setSelectedProject] = useState(null);
   const [formData, setFormData] = useState({
     projectName: "",
@@ -314,12 +316,15 @@ const ProjectManagement = () => {
   };
 
   const showNotification = (message, type = "info") => {
-    setNotification({ message, type });
-    
-    // Auto-clear notification after 5 seconds
-    setTimeout(() => {
-      setNotification(null);
-    }, 5000);
+    if (type === "success") {
+      toast.showSuccess(message);
+    } else if (type === "error") {
+      toast.showError(message);
+    } else if (type === "warning") {
+      toast.showWarning(message);
+    } else {
+      toast.showInfo(message);
+    }
   };
 
    return (
@@ -333,12 +338,6 @@ const ProjectManagement = () => {
             </button>
           </div>
         </div>
-        
-        {notification && (
-          <div className={`notification ${notification.type}`}>
-            {notification.message}
-          </div>
-        )}
         
         <div className="project-management-grid">
           {/* Projects list card */}

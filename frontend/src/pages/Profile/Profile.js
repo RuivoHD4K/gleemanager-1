@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
+import { useToast } from '../../components/Toast/ToastContext';
 import './Profile.css';
 
 const Profile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
+  const toast = useToast();
   
   // User data states
   const [userData, setUserData] = useState({
@@ -54,6 +56,31 @@ const Profile = () => {
     // Fetch additional user data from API
     fetchUserData(userId);
   }, [navigate]);
+
+  // Password validation function
+  const validatePassword = (password) => {
+    if (password.length < 8) {
+      return { valid: false, message: 'Password must be at least 8 characters long' };
+    }
+    
+    const hasNumber = /[0-9]/.test(password);
+    if (!hasNumber) {
+      return { valid: false, message: 'Password must contain at least one number' };
+    }
+    
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    
+    if (!hasSpecialChar && !(hasUppercase && hasLowercase)) {
+      return { 
+        valid: false, 
+        message: 'Password must either contain a special character or both uppercase and lowercase letters' 
+      };
+    }
+    
+    return { valid: true, message: '' };
+  };
   
   const fetchUserData = async (userId) => {
     setLoading(true);
@@ -179,13 +206,15 @@ const Profile = () => {
       return;
     }
     
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showNotification('New passwords do not match', 'error');
+    // Validate new password against criteria
+    const validation = validatePassword(passwordForm.newPassword);
+    if (!validation.valid) {
+      showNotification(validation.message, 'error');
       return;
     }
     
-    if (passwordForm.newPassword.length < 8) {
-      showNotification('Password must be at least 8 characters long', 'error');
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showNotification('New passwords do not match', 'error');
       return;
     }
     
@@ -251,12 +280,15 @@ const Profile = () => {
   };
   
   const showNotification = (message, type = 'info') => {
-    setNotification({ message, type });
-    
-    // Auto-clear notification after 5 seconds
-    setTimeout(() => {
-      setNotification(null);
-    }, 5000);
+    if (type === 'success') {
+      toast.showSuccess(message);
+    } else if (type === 'error') {
+      toast.showError(message);
+    } else if (type === 'warning') {
+      toast.showWarning(message);
+    } else {
+      toast.showInfo(message);
+    }
   };
   
   return (
@@ -265,12 +297,6 @@ const Profile = () => {
         <div className="page-header">
           <h1>My Profile</h1>
         </div>
-        
-        {notification && (
-          <div className={`notification ${notification.type}`}>
-            {notification.message}
-          </div>
-        )}
         
         <div className="profile-grid">
           {/* User information card */}
@@ -369,7 +395,12 @@ const Profile = () => {
                   disabled={loading}
                   required
                 />
-                <p className="form-help">Password must be at least 8 characters long.</p>
+                <p className="password-requirements-title" >Password requirements:</p>
+                        <ul>
+                          <li className="password-requirements">Must be 8 characters long</li>
+                          <li className="password-requirements">Must have special character(s) or uppercase and lowercase characters</li>
+                          <li className="password-requirements">Must have at least one number</li>
+                        </ul>
               </div>
               
               <div className="form-group">

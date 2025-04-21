@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import LoadingSpinner from "../../components/LoadingSpinner/LoadingSpinner";
+import { useToast } from '../../components/Toast/ToastContext';
 import "./Login.css";
 
 const Login = ({ setIsAuthenticated, setUserRole, setMustChangePassword }) => {
@@ -8,6 +9,7 @@ const Login = ({ setIsAuthenticated, setUserRole, setMustChangePassword }) => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
+  const toast = useToast();
 
   // Check if we have a saved account to autofill and check for existing auth
   useEffect(() => {
@@ -51,8 +53,6 @@ const Login = ({ setIsAuthenticated, setUserRole, setMustChangePassword }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
-    setSuccessMessage("");
 
     try {
       const response = await fetch("http://localhost:5000/authenticate", {
@@ -82,7 +82,7 @@ const Login = ({ setIsAuthenticated, setUserRole, setMustChangePassword }) => {
         localStorage.setItem("isAuthenticated", "true");
         localStorage.setItem("mustChangePassword", mustChangePasswordFlag.toString());
         
-        setSuccessMessage("Login successful! Redirecting...");
+        toast.showSuccess("Login successful! Redirecting...");
         
         // Update authentication state, user role, and mustChangePassword state
         setTimeout(() => {
@@ -91,11 +91,11 @@ const Login = ({ setIsAuthenticated, setUserRole, setMustChangePassword }) => {
           setMustChangePassword(mustChangePasswordFlag);
         }, 1000);
       } else {
-        setError("Invalid email or password");
+        toast.showError("Invalid email or password");
         setLoading(false);
       }
     } catch (err) {
-      setError("Authentication failed: " + err.message);
+      toast.showError("Authentication failed: " + err.message);
       setLoading(false);
     }
   };
@@ -108,9 +108,6 @@ const Login = ({ setIsAuthenticated, setUserRole, setMustChangePassword }) => {
             <h1>GleeManager</h1>
             <p>Management made simple</p>
           </div>
-          
-          {error && <div className="notification error">{error}</div>}
-          {successMessage && <div className="notification success">{successMessage}</div>}
           
           <form onSubmit={handleLogin}>
             <div className="form-group">

@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import LoadingSpinner from "../../components/LoadingSpinner/LoadingSpinner";
+import { useToast } from "../../components/Toast/ToastContext";
 import "./UserManagement.css";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
+  const toast = useToast();
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
     email: "",
@@ -41,6 +43,30 @@ const UserManagement = () => {
   useEffect(() =>  {
     fetchUsers();
   }, [] );
+
+  const validatePassword = (password) => {
+    if (password.length < 8) {
+      return { valid: false, message: 'Password must be at least 8 characters long' };
+    }
+    
+    const hasNumber = /[0-9]/.test(password);
+    if (!hasNumber) {
+      return { valid: false, message: 'Password must contain at least one number' };
+    }
+    
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    
+    if (!hasSpecialChar && !(hasUppercase && hasLowercase)) {
+      return { 
+        valid: false, 
+        message: 'Password must either contain a special character or both uppercase and lowercase letters' 
+      };
+    }
+    
+    return { valid: true, message: '' };
+  };
 
   const fetchUsers = async (showLoading = true) => {
     try {
@@ -135,12 +161,26 @@ const UserManagement = () => {
   };
 
   const generateRandomPassword = () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+    const uppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowercaseChars = "abcdefghijklmnopqrstuvwxyz";
+    const numberChars = "0123456789";
+    const specialChars = "!@#$%^&*()_+";
+    
+    // Ensure we have at least one of each required type
     let password = "";
-    for (let i = 0; i < 10; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    password += uppercaseChars.charAt(Math.floor(Math.random() * uppercaseChars.length));
+    password += lowercaseChars.charAt(Math.floor(Math.random() * lowercaseChars.length));
+    password += numberChars.charAt(Math.floor(Math.random() * numberChars.length));
+    password += specialChars.charAt(Math.floor(Math.random() * specialChars.length));
+    
+    // Fill the rest with random characters
+    const allChars = uppercaseChars + lowercaseChars + numberChars + specialChars;
+    for (let i = 0; i < 6; i++) { // Add 6 more chars for a total of 10
+      password += allChars.charAt(Math.floor(Math.random() * allChars.length));
     }
-    return password;
+    
+    // Shuffle the password
+    return password.split('').sort(() => 0.5 - Math.random()).join('');
   };
 
   // Initiates the password generation process with authentication
@@ -355,6 +395,14 @@ const UserManagement = () => {
       showNotification("Password must be at least 8 characters long", "error");
       return;
     }
+
+    if (isCustomPassword) {
+      const validation = validatePassword(newUserData.password);
+      if (!validation.valid) {
+        showNotification(validation.message, "error");
+        return;
+      }
+    }
     
     try {
       const token = localStorage.getItem("authToken");
@@ -491,12 +539,15 @@ const UserManagement = () => {
   };
 
   const showNotification = (message, type = "info") => {
-    setNotification({ message, type });
-    
-    // Auto-clear notification after 5 seconds
-    setTimeout(() => {
-      setNotification(null);
-    }, 5000);
+    if (type === "success") {
+      toast.showSuccess(message);
+    } else if (type === "error") {
+      toast.showError(message);
+    } else if (type === "warning") {
+      toast.showWarning(message);
+    } else {
+      toast.showInfo(message);
+    }
   };
 
   // Format the time elapsed since last seen
@@ -560,12 +611,6 @@ const UserManagement = () => {
             </button>
           </div>
         </div>
-        
-        {notification && (
-          <div className={`notification ${notification.type}`}>
-            {notification.message}
-          </div>
-        )}
         
         <div className="user-management-grid">
           {/* Users list card */}
@@ -768,11 +813,18 @@ const UserManagement = () => {
                     </button>
                   </div>
                   
-                  <p className="form-help">
+                  <div className="form-help">
                     {isCustomPassword ? 
-                      "Custom password will not require a change on first login." : 
+                      <div>
+                      <p className="password-requirements-title" >Password requirements:</p>
+                        <ul>
+                          <li className="password-requirements">Must be 8 characters long</li>
+                          <li className="password-requirements">Must have special character(s) or uppercase and lowercase characters</li>
+                          <li className="password-requirements">Must have at least one number</li>
+                        </ul>
+                      </div> : 
                       "The user will be required to change this password on first login."}
-                  </p>
+                  </div>
                 </div>
                 
                 <div className="form-group">

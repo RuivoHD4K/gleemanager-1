@@ -8,6 +8,7 @@ import ProjectManagement from "./pages/ProjectManagement/ProjectManagement"; // 
 import Profile from "./pages/Profile/Profile";
 import ChangePassword from "./pages/ChangePassword/ChangePassword";
 import BaseLayout from "./components/Layout/BaseLayout";
+import { ToastProvider } from "./components/Toast/ToastContext";
 import "./App.css";
 
 function App() {
@@ -138,95 +139,97 @@ function App() {
   console.log("Auth state:", { isAuthenticated, userRole, mustChangePassword });
 
   return (
-    <Router>
-      <Routes>
-        <Route 
-          path="/login" 
-          element={
-            !isAuthenticated ? (
-              <Login 
-                setIsAuthenticated={setIsAuthenticated} 
-                setUserRole={setUserRole}
-                setMustChangePassword={setMustChangePassword}
-              />
-            ) : (
-              // If authenticated but needs to change password, redirect to change password
-              mustChangePassword ? (
-                <Navigate to="/change-password" replace />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            )
-          } 
-        />
-        
-        {/* Change Password route */}
-        <Route
-          path="/change-password"
-          element={
-            isAuthenticated ? (
-              <ChangePassword setMustChangePassword={setMustChangePassword} />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        
-        {/* Protected routes wrapped in BaseLayout */}
-        <Route 
-          path="/" 
-          element={
-            isAuthenticated ? (
-              // If user must change password, redirect to change password page
-              mustChangePassword ? (
-                <Navigate to="/change-password" replace />
-              ) : (
-                <BaseLayout userRole={userRole} handleLogout={handleLogout} />
-              )
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        >
-          {/* Dashboard route - renders different dashboard based on role */}
+    <ToastProvider>
+      <Router>
+        <Routes>
           <Route 
-            index
+            path="/login" 
             element={
-              userRole === "admin" ? <AdminDashboard /> : <UserDashboard />
-            } 
-          />
-          
-          {/* Admin-only routes */}
-          <Route 
-            path="user-management" 
-            element={
-              userRole === "admin" ? (
-                <UserManagement />
+              !isAuthenticated ? (
+                <Login 
+                  setIsAuthenticated={setIsAuthenticated} 
+                  setUserRole={setUserRole}
+                  setMustChangePassword={setMustChangePassword}
+                />
               ) : (
-                <Navigate to="/" replace />
+                // If authenticated but needs to change password, redirect to change password
+                mustChangePassword ? (
+                  <Navigate to="/change-password" replace />
+                ) : (
+                  <Navigate to="/" replace />
+                )
               )
             } 
           />
           
-          {/* Project Management route - admin only */}
-          <Route 
-            path="project-management" 
+          {/* Change Password route */}
+          <Route
+            path="/change-password"
             element={
-              userRole === "admin" ? (
-                <ProjectManagement />
+              isAuthenticated ? (
+                <ChangePassword setMustChangePassword={setMustChangePassword} />
               ) : (
-                <Navigate to="/" replace />
+                <Navigate to="/login" replace />
               )
-            } 
+            }
           />
           
-          {/* Add more routes as needed */}
-          <Route path="profile" element={<Profile />} />
-          <Route path="settings" element={<div>Settings Page Coming Soon</div>} />
-          <Route path="help" element={<div>Help Page Coming Soon</div>} />
-        </Route>
-      </Routes>
-    </Router>
+          {/* Protected routes wrapped in BaseLayout */}
+          <Route 
+            path="/" 
+            element={
+              isAuthenticated ? (
+                // If user must change password, redirect to change password page
+                mustChangePassword ? (
+                  <Navigate to="/change-password" replace />
+                ) : (
+                  <BaseLayout userRole={userRole} handleLogout={handleLogout} />
+                )
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          >
+            {/* Dashboard route - renders different dashboard based on role */}
+            <Route 
+              index
+              element={
+                userRole === "admin" ? <AdminDashboard /> : <UserDashboard />
+              } 
+            />
+            
+            {/* Admin-only routes */}
+            <Route 
+              path="user-management" 
+              element={
+                userRole === "admin" ? (
+                  <UserManagement />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              } 
+            />
+            
+            {/* Project Management route - admin only */}
+            <Route 
+              path="project-management" 
+              element={
+                userRole === "admin" ? (
+                  <ProjectManagement />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              } 
+            />
+            
+            {/* Add more routes as needed */}
+            <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<div>Settings Page Coming Soon</div>} />
+            <Route path="help" element={<div>Help Page Coming Soon</div>} />
+          </Route>
+        </Routes>
+      </Router>
+    </ToastProvider>
   );
 }
 

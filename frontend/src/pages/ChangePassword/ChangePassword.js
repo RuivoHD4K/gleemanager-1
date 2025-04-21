@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
+import { useToast } from '../../components/Toast/ToastContext';
 import './ChangePassword.css';
 
 const ChangePassword = ({ setMustChangePassword }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [successMessage, setSuccessMessage] = useState('');
+  const toast = useToast();
   const navigate = useNavigate();
 
   // Get the user ID from localStorage
@@ -40,26 +40,48 @@ const ChangePassword = ({ setMustChangePassword }) => {
     checkAuth();
   }, [userId, navigate]);
 
+  // Password validation function
+  const validatePassword = (password) => {
+    if (password.length < 8) {
+      return { valid: false, message: 'Password must be at least 8 characters long' };
+    }
+    
+    const hasNumber = /[0-9]/.test(password);
+    if (!hasNumber) {
+      return { valid: false, message: 'Password must contain at least one number' };
+    }
+    
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    
+    if (!hasSpecialChar && !(hasUppercase && hasLowercase)) {
+      return { 
+        valid: false, 
+        message: 'Password must either contain a special character or both uppercase and lowercase letters' 
+      };
+    }
+    
+    return { valid: true, message: '' };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Reset messages
-    setError('');
-    setSuccessMessage('');
-    
     // Validate inputs
     if (!password) {
-      setError('Please enter a new password');
+      toast.showError('Please enter a new password');
       return;
     }
     
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long');
+    const validation = validatePassword(password);
+    if (!validation.valid) {
+      toast.showError(validation.message);
       return;
     }
     
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      toast.showError('Passwords do not match');
       return;
     }
     
@@ -89,7 +111,7 @@ const ChangePassword = ({ setMustChangePassword }) => {
       }
       
       // Update was successful
-      setSuccessMessage('Password updated successfully! Redirecting...');
+      toast.showSuccess('Password updated successfully! Redirecting...');
       
       // Update localStorage to remove the mustChangePassword flag
       localStorage.setItem('mustChangePassword', 'false');
@@ -104,7 +126,7 @@ const ChangePassword = ({ setMustChangePassword }) => {
       
     } catch (error) {
       console.error('Error updating password:', error);
-      setError('Failed to update password: ' + error.message);
+      toast.showError('Failed to update password: ' + error.message);
       setLoading(false);
     }
   };
@@ -117,10 +139,7 @@ const ChangePassword = ({ setMustChangePassword }) => {
             <h1>GleeManager</h1>
             <p>Please change your password</p>
           </div>
-          
-          {error && <div className="notification error">{error}</div>}
-          {successMessage && <div className="notification success">{successMessage}</div>}
-          
+         
           <div className="password-info">
             <p>For {email}</p>
             <p className="password-instruction">
@@ -140,7 +159,12 @@ const ChangePassword = ({ setMustChangePassword }) => {
                 placeholder="Enter new password"
                 required
               />
-              <p className="form-help">Password must be at least 8 characters long.</p>
+              <p className="password-requirements-title" >Password requirements:</p>
+                        <ul>
+                          <li className="password-requirements">Must be 8 characters long</li>
+                          <li className="password-requirements">Must have special character(s) or uppercase and lowercase characters</li>
+                          <li className="password-requirements">Must have at least one number</li>
+                        </ul>
             </div>
             
             <div className="form-group">

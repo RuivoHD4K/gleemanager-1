@@ -203,12 +203,124 @@ body {
   background-color: var(--primary-dark);
 }
 
-/* Notification styles */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 11000; /* Increased from 9999 to be higher than modal-backdrop */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 350px;
+}
+
+.toast-notification {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: white;
+  color: var(--text-color);
+  padding: 12px 16px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: toast-slide-in 0.3s ease forwards;
+  overflow: hidden;
+  position: relative;
+}
+
+.toast-notification::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.toast-notification.success {
+  background-color: white;
+  color: var(--text-color);
+}
+
+.toast-notification.success::before {
+  background-color: var(--success-color);
+}
+
+.toast-notification.error {
+  background-color: white;
+  color: var(--text-color);
+}
+
+.toast-notification.error::before {
+  background-color: var(--danger-color);
+}
+
+.toast-notification.info {
+  background-color: white;
+  color: var(--text-color);
+}
+
+.toast-notification.info::before {
+  background-color: #0077cc;
+}
+
+.toast-notification.warning {
+  background-color: white;
+  color: var(--text-color);
+}
+
+.toast-notification.warning::before {
+  background-color: #ffc107;
+}
+
+.toast-content {
+  flex: 1;
+  margin-right: 10px;
+}
+
+.toast-message {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.toast-close:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Keep the old notification styles for backward compatibility but modify them slightly */
 .notification {
   padding: 1rem;
   border-radius: 4px;
   margin-bottom: 1.5rem;
   text-align: center;
+  display: none; /* Hide old notifications */
 }
 
 .notification.success {
@@ -336,4 +448,16 @@ body {
 
 .status-indicator.offline {
   background-color: #aaa;
+}
+
+.password-requirements{
+  font-size: 0.6rem;
+  color: #666;
+  margin: 0;
+}
+
+.password-requirements-title{
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0;
 }
