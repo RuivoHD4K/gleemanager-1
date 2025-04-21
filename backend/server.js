@@ -1114,6 +1114,221 @@ else if (req.method === "DELETE" && req.url.match(/^\/projects\/[^\/]+$/)) {
     });
 }
   
+// Get projects assigned to a user
+else if (req.method === "GET" && req.url.match(/^\/users\/[^\/]+\/projects$/)) {
+  // Extract userId from URL
+  const userId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Handle async operation
+  (async () => {
+    try {
+      // Fetch UserProjects records for this user
+      const params = new ScanCommand({
+        TableName: "UserProjects",
+        FilterExpression: "userId = :userId",
+        ExpressionAttributeValues: {
+          ":userId": userId
+        }
+      });
+      
+      const result = await dynamoDB.send(params);
+      
+      if (!result.Items || result.Items.length === 0) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify([]));
+      }
+      
+      // Extract project IDs from assignments
+      const projectIds = result.Items.map(item => item.projectId);
+      
+      // For each project ID, fetch the project details
+      const projectPromises = projectIds.map(projectId => {
+        const projectParams = new GetCommand({
+          TableName: "Projects",
+          Key: {
+            projectId: projectId
+          }
+        });
+        return dynamoDB.send(projectParams);
+      });
+      
+      const projectResults = await Promise.all(projectPromises);
+      const projects = projectResults
+        .filter(result => result.Item) // Filter out any not found
+        .map(result => result.Item);
+      
+      // Format dates for all projects
+      const formattedProjects = projects.map(project => ({
+        ...project,
+        projectStartDate: formatDate(project.projectStartDate),
+        projectEndDate: project.projectEndDate ? formatDate(project.projectEndDate) : null
+      }));
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(formattedProjects));
+    } catch (err) {
+      console.error("Error fetching user projects:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  })();
+}
+
+// Assign a project to a user
+else if (req.method === "POST" && req.url.match(/^\/users\/[^\/]+\/projects\/[^\/]+$/)) {
+  // Extract userId and projectId from URL
+  const urlParts = req.url.split("/");
+  const userId = urlParts[2];
+  const projectId = urlParts[4];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Handle async operation
+  (async () => {
+    try {
+      // Check if the user exists
+      const userParams = new GetCommand({
+        TableName: "Users",
+        Key: {
+          userId: userId
+        }
+      });
+      
+      const userResult = await dynamoDB.send(userParams);
+      
+      if (!userResult.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
+      }
+      
+      // Check if the project exists
+      const projectParams = new GetCommand({
+        TableName: "Projects",
+        Key: {
+          projectId: projectId
+        }
+      });
+      
+      const projectResult = await dynamoDB.send(projectParams);
+      
+      if (!projectResult.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Project not found" }));
+      }
+      
+      // Check if assignment already exists
+      const checkParams = new ScanCommand({
+        TableName: "UserProjects",
+        FilterExpression: "userId = :userId AND projectId = :projectId",
+        ExpressionAttributeValues: {
+          ":userId": userId,
+          ":projectId": projectId
+        }
+      });
+      
+      const existingAssignment = await dynamoDB.send(checkParams);
+      
+      if (existingAssignment.Items && existingAssignment.Items.length > 0) {
+        res.writeHead(409, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Project already assigned to user" }));
+      }
+      
+      // Create a new assignment
+      const assignmentId = "assignment-" + uuidv4().substring(0, 8);
+      
+      const assignParams = new PutCommand({
+        TableName: "UserProjects",
+        Item: {
+          assignmentId,
+          userId,
+          projectId,
+          assignedAt: new Date().toISOString(),
+          assignedBy: tokenStore.get(token).userId // Track who made the assignment
+        }
+      });
+      
+      await dynamoDB.send(assignParams);
+      
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ 
+        message: "Project assigned to user successfully",
+        assignmentId
+      }));
+    } catch (err) {
+      console.error("Error assigning project to user:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  })();
+}
+
+// Remove a project assignment from a user
+else if (req.method === "DELETE" && req.url.match(/^\/users\/[^\/]+\/projects\/[^\/]+$/)) {
+  // Extract userId and projectId from URL
+  const urlParts = req.url.split("/");
+  const userId = urlParts[2];
+  const projectId = urlParts[4];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Handle async operation
+  (async () => {
+    try {
+      // Find the assignment
+      const findParams = new ScanCommand({
+        TableName: "UserProjects",
+        FilterExpression: "userId = :userId AND projectId = :projectId",
+        ExpressionAttributeValues: {
+          ":userId": userId,
+          ":projectId": projectId
+        }
+      });
+      
+      const result = await dynamoDB.send(findParams);
+      
+      if (!result.Items || result.Items.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Assignment not found" }));
+      }
+      
+      // Delete the assignment
+      const assignment = result.Items[0];
+      
+      const deleteParams = new DeleteCommand({
+        TableName: "UserProjects",
+        Key: {
+          assignmentId: assignment.assignmentId
+        }
+      });
+      
+      await dynamoDB.send(deleteParams);
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ 
+        message: "Project unassigned from user successfully" 
+      }));
+    } catch (err) {
+      console.error("Error removing project from user:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  })();
+}
+
   // 404 Not Found for all other routes
   else {
     res.writeHead(404, { "Content-Type": "application/json" });

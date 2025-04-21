@@ -38,6 +38,13 @@ const UserManagement = () => {
   const [originalGeneratedPassword, setOriginalGeneratedPassword] = useState("");
   const [isCustomPassword, setIsCustomPassword] = useState(false);
   const [isPasswordEditable, setIsPasswordEditable] = useState(false);
+
+  // Project assignment states
+  const [showProjectAssignModal, setShowProjectAssignModal] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [assignedProjects, setAssignedProjects] = useState([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  
   const navigate = useNavigate();
 
   useEffect(() =>  {
@@ -127,6 +134,98 @@ const UserManagement = () => {
         }, 100);
       }
     }
+  };
+
+  // Fetch all projects
+  const fetchProjects = async () => {
+    try {
+      setIsLoadingProjects(true);
+      const token = localStorage.getItem("authToken");
+      const response = await fetch("http://localhost:5000/projects", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch projects");
+      }
+      
+      const data = await response.json();
+      setProjects(data);
+    } catch (err) {
+      showNotification("Failed to fetch projects: " + err.message, "error");
+    } finally {
+      setIsLoadingProjects(false);
+    }
+  };
+
+  // Fetch user's assigned projects
+  const fetchUserProjects = async (userId) => {
+    try {
+      setIsLoadingProjects(true);
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`http://localhost:5000/users/${userId}/projects`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch user projects");
+      }
+      
+      const data = await response.json();
+      setAssignedProjects(data.map(project => project.projectId));
+    } catch (err) {
+      console.error("Error fetching user projects:", err);
+      setAssignedProjects([]);
+    } finally {
+      setIsLoadingProjects(false);
+    }
+  };
+
+  // Toggle project assignment
+  const toggleProjectAssignment = async (projectId) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const isAssigned = assignedProjects.includes(projectId);
+      
+      const method = isAssigned ? "DELETE" : "POST";
+      const url = `http://localhost:5000/users/${selectedUser.userId}/projects/${projectId}`;
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to ${isAssigned ? "remove" : "assign"} project`);
+      }
+      
+      // Update the local state
+      if (isAssigned) {
+        setAssignedProjects(assignedProjects.filter(id => id !== projectId));
+      } else {
+        setAssignedProjects([...assignedProjects, projectId]);
+      }
+      
+      showNotification(
+        `Project ${isAssigned ? "unassigned from" : "assigned to"} user successfully`, 
+        "success"
+      );
+    } catch (err) {
+      showNotification(err.message, "error");
+    }
+  };
+
+  // Handle project assignment modal
+  const handleOpenProjectAssignModal = async () => {
+    await fetchProjects();
+    await fetchUserProjects(selectedUser.userId);
+    setShowProjectAssignModal(true);
   };
 
   // Update form data when a user is selected
@@ -649,7 +748,17 @@ const UserManagement = () => {
           
           {/* User edit form card */}
           <div className="dashboard-card user-edit-card">
-            <h3>Edit User</h3>
+            <div className="card-header-with-actions">
+              <h3>Edit User</h3>
+              {selectedUser && (
+                <button 
+                  className="action-btn assign-projects-btn"
+                  onClick={handleOpenProjectAssignModal}
+                >
+                  Assign User to Projects
+                </button>
+              )}
+            </div>
             {selectedUser ? (
               <form onSubmit={handleSubmit} className="user-edit-form">
                 <div className="form-group">
@@ -924,6 +1033,55 @@ const UserManagement = () => {
                   onClick={() => setShowDeleteConfirmModal(false)}
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Project Assignment Modal */}
+        {showProjectAssignModal && (
+          <div className="modal-backdrop">
+            <div className="modal-content project-assignment-modal">
+              <h3>Assign Projects to {selectedUser.username || selectedUser.email}</h3>
+              
+              {isLoadingProjects ? (
+                <div className="loading-indicator">Loading projects...</div>
+              ) : projects.length === 0 ? (
+                <p>No projects available to assign</p>
+              ) : (
+                <>
+                  <p className="modal-instruction">
+                    Select the projects you want to assign to this user:
+                  </p>
+                  <div className="projects-list-container assignment-list">
+                    <ul className="project-assignment-list">
+                      {projects.map(project => (
+                        <li key={project.projectId} className="project-assignment-item">
+                          <label className="project-checkbox-label">
+                            <input
+                              type="checkbox"
+                              checked={assignedProjects.includes(project.projectId)}
+                              onChange={() => toggleProjectAssignment(project.projectId)}
+                            />
+                            <span className="project-assignment-name">{project.projectName}</span>
+                            {project.company && (
+                              <span className="project-assignment-company">{project.company}</span>
+                            )}
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
+              
+              <div className="modal-actions">
+                <button 
+                  className="action-btn cancel-btn"
+                  onClick={() => setShowProjectAssignModal(false)}
+                >
+                  Close
                 </button>
               </div>
             </div>

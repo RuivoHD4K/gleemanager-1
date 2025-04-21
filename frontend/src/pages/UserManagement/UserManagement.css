@@ -108,6 +108,27 @@
   min-height: 500px;
 }
 
+.card-header-with-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.card-header-with-actions h3 {
+  margin-bottom: 0;
+}
+
+.assign-projects-btn {
+  background-color: var(--secondary-color);
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+}
+
+.assign-projects-btn:hover {
+  background-color: #e88a35;
+}
+
 .user-edit-form {
   display: flex;
   flex-direction: column;
@@ -388,6 +409,80 @@
   width: 100%;
 }
 
+/* Project Assignment Modal Styles */
+.project-assignment-modal {
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-instruction {
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.assignment-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 1rem 0;
+  border: 1px solid var(--light-gray);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.project-assignment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.project-assignment-item {
+  padding: 0.8rem;
+  border-bottom: 1px solid var(--light-gray);
+  transition: background-color 0.2s;
+}
+
+.project-assignment-item:last-child {
+  border-bottom: none;
+}
+
+.project-assignment-item:hover {
+  background-color: var(--gray-bg);
+}
+
+.project-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  width: 100%;
+}
+
+.project-checkbox-label input[type="checkbox"] {
+  margin-right: 1rem;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.project-assignment-name {
+  font-weight: 500;
+  flex: 1;
+}
+
+.project-assignment-company {
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
+  margin-left: 1rem;
+}
+
+.modal-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* Notifications */
 .notification {
   padding: 1rem;
@@ -426,6 +521,16 @@
   
   .delete-btn {
     margin-top: 0.5rem;
+  }
+
+  .card-header-with-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.8rem;
+  }
+
+  .assign-projects-btn {
+    width: 100%;
   }
 }
 /* User meta information display */
@@ -466,7 +571,3 @@
   color: var(--text-color);
   font-size: 0.9rem;
 }
-
-
-
-
