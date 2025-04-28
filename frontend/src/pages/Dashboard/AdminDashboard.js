@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UsersList from '../../components/UsersList/UsersList';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
-import { Users, FolderKanban } from 'lucide-react';
+import { Users, FolderKanban, FileSpreadsheet, Building2} from 'lucide-react';
 
 const AdminDashboard = () => {  
   const navigate = useNavigate();
@@ -130,6 +130,18 @@ const AdminDashboard = () => {
               <FolderKanban size={32} />
             </div>
             <span className="drawer-label">Project Management</span>
+          </div>
+          <div className="drawer-item" onClick={() => navigate("/excel-templates")}>
+            <div className="drawer-icon">
+              <FileSpreadsheet size={32} />
+            </div>
+            <span className="drawer-label">Excel Templates</span>
+          </div>
+          <div className="drawer-item" onClick={() => navigate("/company-management")}>
+            <div className="drawer-icon">
+              <Building2 size={32} />
+            </div>
+            <span className="drawer-label">Company Management</span>
           </div>
           
           </div>

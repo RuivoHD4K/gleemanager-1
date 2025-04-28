@@ -7,6 +7,8 @@ import UserManagement from "./pages/UserManagement/UserManagement";
 import ProjectManagement from "./pages/ProjectManagement/ProjectManagement"; // Import the new component
 import Profile from "./pages/Profile/Profile";
 import ChangePassword from "./pages/ChangePassword/ChangePassword";
+import ExcelTemplates from "./pages/ExcelTemplates/ExcelTemplates";
+import CompanyManagement from "./pages/CompanyManagement/CompanyManagement";
 import BaseLayout from "./components/Layout/BaseLayout";
 import { ToastProvider } from "./components/Toast/ToastContext";
 import "./App.css";
@@ -216,6 +218,31 @@ function App() {
               element={
                 userRole === "admin" ? (
                   <ProjectManagement />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              } 
+            />
+            
+            {/* Company Management route - admin only */}
+            <Route 
+              path="company-management" 
+              element={
+                userRole === "admin" ? (
+                  <CompanyManagement />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              } 
+            />
+
+
+            {/* Excel Templates route - admin only */}
+            <Route 
+              path="excel-templates" 
+              element={
+                userRole === "admin" ? (
+                  <ExcelTemplates />
                 ) : (
                   <Navigate to="/" replace />
                 )

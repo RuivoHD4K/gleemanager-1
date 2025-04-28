@@ -10,7 +10,9 @@ import {
   HelpCircle, 
   ChevronDown, 
   ChevronRight, 
-  Folder 
+  Folder,
+  FileSpreadsheet,
+  Building2
 } from 'lucide-react';
 
 const Sidebar = ({ userRole, isSidebarCollapsed }) => {
@@ -90,7 +92,7 @@ const Sidebar = ({ userRole, isSidebarCollapsed }) => {
   // Effect to open submenu only on initial load or route change
   useEffect(() => {
     if (!isSidebarCollapsed && hasSubmenuItems) {
-      const submenuRoutes = ['/user-management', '/project-management'];
+      const submenuRoutes = ['/user-management', '/project-management', '/excel-templates']; // Added excel-templates
       const isSubmenuRouteActive = submenuRoutes.some(route => 
         location.pathname.startsWith(route)
       );
@@ -150,6 +152,22 @@ const Sidebar = ({ userRole, isSidebarCollapsed }) => {
                 <Folder size={iconSize} />
               </span>
               <span className="nav-text">Project Management</span>
+            </NavLink>)}
+            
+            {userRole === 'admin' && (
+            <NavLink to="/excel-templates" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
+              <span className="nav-icon">
+                <FileSpreadsheet size={iconSize} />
+              </span>
+              <span className="nav-text">Excel Templates</span>
+            </NavLink>)}
+
+            {userRole === 'admin' && (
+            <NavLink to="/company-management" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
+              <span className="nav-icon">
+                <Building2 size={iconSize} />
+              </span>
+              <span className="nav-text">Company Management</span>
             </NavLink>)}
           </div>
         )}

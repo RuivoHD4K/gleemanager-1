@@ -5,6 +5,7 @@ const crypto = require("crypto"); // Node.js built-in encryption library
 const { v4: uuidv4 } = require("uuid"); // You'll need to install this: npm install uuid
 const fs = require("fs");
 const path = require("path");
+const busboy = require('busboy'); // You'll need to install this: npm install busboy
 
 // Encryption functions
 function generateSalt() {
@@ -1326,9 +1327,521 @@ else if (req.method === "DELETE" && req.url.match(/^\/users\/[^\/]+\/projects\/[
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
     }
+    
   })();
+}  
+
+  // Excel Templates endpoints
+// Get all Excel templates
+else if (req.method === "GET" && req.url === "/excel-templates") {
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+
+  const params = new ScanCommand({ TableName: "ExcelTemplates" });
+
+  dynamoDB.send(params)
+    .then((data) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(data.Items || []));
+    })
+    .catch((err) => {
+      console.error("Error fetching Excel templates:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
 }
 
+// Upload a new Excel template
+else if (req.method === "POST" && req.url === "/excel-templates") {
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+
+  const userId = tokenStore.get(token).userId;
+  
+  // Create a temporary file path
+  const tempDir = path.join(__dirname, "temp");
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir);
+  }
+
+  // Multipart form data handling
+  const busboy = require('busboy');
+  const busboyInstance = busboy({ headers: req.headers });
+  
+  let templateData = {
+    templateId: "template-" + uuidv4().substring(0, 8),
+    uploadedAt: new Date().toISOString(),
+    uploadedBy: userId,
+    isActive: true,
+    fileSize: 0
+  };
+  
+  let filePath;
+  let fileBuffer;
+  
+  busboyInstance.on('field', (name, val) => {
+    if (name === 'name') templateData.name = val;
+    if (name === 'description') templateData.description = val;
+    if (name === 'isActive') templateData.isActive = val === 'true';
+  });
+  
+  busboyInstance.on('file', (name, file, info) => {
+    const { filename, mimeType } = info;
+    
+    // Validate file type
+    if (!filename.endsWith('.xlsx') && !filename.endsWith('.xls')) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Only Excel files (.xlsx, .xls) are allowed" }));
+      return;
+    }
+    
+    templateData.originalFilename = filename;
+    templateData.mimeType = mimeType;
+    
+    filePath = path.join(tempDir, templateData.templateId + path.extname(filename));
+    
+    const chunks = [];
+    let fileSize = 0;
+    
+    file.on('data', (data) => {
+      chunks.push(data);
+      fileSize += data.length;
+      
+      // Check file size limit (10MB)
+      if (fileSize > 10 * 1024 * 1024) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "File size exceeds 10MB limit" }));
+        file.resume(); // Skip the rest of the file
+      }
+    });
+    
+    file.on('end', () => {
+      if (fileSize <= 10 * 1024 * 1024) {
+        fileBuffer = Buffer.concat(chunks);
+        templateData.fileSize = fileSize;
+        
+        // Write file to disk temporarily
+        fs.writeFileSync(filePath, fileBuffer);
+      }
+    });
+  });
+  
+  busboyInstance.on('finish', async () => {
+    try {
+      if (!templateData.name) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Template name is required" }));
+      }
+      
+      if (!filePath || !fs.existsSync(filePath)) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "No file uploaded or file processing failed" }));
+      }
+      
+      // Read the file into an S3-compatible storage (or your preferred storage)
+      // For this implementation, we'll store the file content in DynamoDB directly
+      // Note: In a production environment, you'd typically use S3 or similar for file storage
+      
+      // Convert file to base64 for storage
+      const fileContent = fs.readFileSync(filePath);
+      const fileBase64 = fileContent.toString('base64');
+      
+      // Store template metadata and file content in DynamoDB
+      const params = new PutCommand({
+        TableName: "ExcelTemplates",
+        Item: {
+          ...templateData,
+          fileContent: fileBase64
+        }
+      });
+      
+      await dynamoDB.send(params);
+      
+      // Remove temporary file
+      fs.unlinkSync(filePath);
+      
+      // Return success response
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        message: "Template uploaded successfully",
+        templateId: templateData.templateId
+      }));
+    } catch (err) {
+      console.error("Error uploading template:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+      
+      // Clean up temporary file if it exists
+      if (filePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+  });
+  
+  req.pipe(busboyInstance);
+}
+
+// Download a template
+else if (req.method === "GET" && req.url.match(/^\/excel-templates\/[^\/]+\/download$/)) {
+  // Extract templateId from URL
+  const templateId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Get template from DynamoDB
+  const params = new GetCommand({
+    TableName: "ExcelTemplates",
+    Key: {
+      templateId: templateId
+    }
+  });
+  
+  dynamoDB.send(params)
+    .then((data) => {
+      if (!data.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Template not found" }));
+      }
+      
+      const template = data.Item;
+      
+      // Decode file content from base64
+      const fileBuffer = Buffer.from(template.fileContent, 'base64');
+      
+      // Set appropriate headers for file download
+      const extension = template.originalFilename ? 
+        path.extname(template.originalFilename) : 
+        (template.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ? '.xlsx' : '.xls');
+      
+      const filename = template.name + extension;
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', template.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Length', fileBuffer.length);
+      
+      res.writeHead(200);
+      res.end(fileBuffer);
+    })
+    .catch((err) => {
+      console.error("Error downloading template:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
+
+// Toggle template status (activate/deactivate)
+else if (req.method === "PUT" && req.url.match(/^\/excel-templates\/[^\/]+\/toggle-status$/)) {
+  // Extract templateId from URL
+  const templateId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+
+  req.on("end", async () => {
+    try {
+      const statusData = JSON.parse(body);
+      
+      // Get the current template
+      const getParams = new GetCommand({
+        TableName: "ExcelTemplates",
+        Key: {
+          templateId: templateId
+        }
+      });
+      
+      const result = await dynamoDB.send(getParams);
+      
+      if (!result.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Template not found" }));
+      }
+      
+      const template = result.Item;
+      
+      // Update template status
+      const updatedTemplate = {
+        ...template,
+        isActive: statusData.isActive,
+        lastModifiedAt: new Date().toISOString()
+      };
+      
+      const updateParams = new PutCommand({
+        TableName: "ExcelTemplates",
+        Item: updatedTemplate
+      });
+      
+      await dynamoDB.send(updateParams);
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ 
+        message: `Template ${statusData.isActive ? 'activated' : 'deactivated'} successfully`,
+        isActive: statusData.isActive
+      }));
+    } catch (err) {
+      console.error("Error toggling template status:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
+
+// Delete a template
+else if (req.method === "DELETE" && req.url.match(/^\/excel-templates\/[^\/]+$/)) {
+  // Extract templateId from URL
+  const templateId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Delete template from DynamoDB
+  const params = new DeleteCommand({
+    TableName: "ExcelTemplates",
+    Key: {
+      templateId: templateId
+    }
+  });
+  
+  dynamoDB.send(params)
+    .then(() => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Template deleted successfully" }));
+    })
+    .catch((err) => {
+      console.error("Error deleting template:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
+
+else if (req.method === "GET" && req.url === "/companies") {
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+
+  const params = new ScanCommand({ TableName: "Companies" });
+
+  dynamoDB.send(params)
+    .then((data) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(data.Items || []));
+    })
+    .catch((err) => {
+      console.error("Error fetching companies:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
+
+// Get a single company by ID
+else if (req.method === "GET" && req.url.match(/^\/companies\/[^\/]+$/)) {
+  // Extract companyId from URL
+  const companyId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Get company by primary key (companyId)
+  const params = new GetCommand({
+    TableName: "Companies",
+    Key: {
+      companyId: companyId
+    }
+  });
+  
+  dynamoDB.send(params)
+    .then((data) => {
+      if (!data.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Company not found" }));
+      }
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(data.Item));
+    })
+    .catch((err) => {
+      console.error("Error fetching company:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
+
+// Create a new company
+else if (req.method === "POST" && req.url === "/companies") {
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+
+  req.on("end", async () => {
+    try {
+      const companyData = JSON.parse(body);
+      
+      // Validate company input
+      if (!companyData.companyName || !companyData.nif) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Company name and NIF are required" }));
+      }
+      
+      // Check if token is valid
+      if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Unauthorized" }));
+      }
+      
+      // Generate unique company ID
+      const companyId = "comp-" + uuidv4().substring(0, 8);
+      
+      // Create the company object
+      const company = {
+        companyId,
+        companyName: companyData.companyName,
+        nif: companyData.nif,
+        address: companyData.address || "",
+        description: companyData.description || "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      const params = new PutCommand({
+        TableName: "Companies",
+        Item: company
+      });
+
+      await dynamoDB.send(params);
+
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ 
+        message: "Company created successfully",
+        company: company
+      }));
+    } catch (err) {
+      console.error("Error creating company:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
+
+// Update a company
+else if (req.method === "PUT" && req.url.match(/^\/companies\/[^\/]+$/)) {
+  // Extract companyId from URL
+  const companyId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+
+  req.on("end", async () => {
+    try {
+      const companyData = JSON.parse(body);
+      
+      // First, get the existing company
+      const getParams = new GetCommand({
+        TableName: "Companies",
+        Key: {
+          companyId: companyId
+        }
+      });
+      
+      const existingCompanyResult = await dynamoDB.send(getParams);
+      
+      if (!existingCompanyResult.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Company not found" }));
+      }
+      
+      const existingCompany = existingCompanyResult.Item;
+      
+      // Update the company object
+      const updatedCompany = {
+        ...existingCompany,
+        companyName: companyData.companyName || existingCompany.companyName,
+        nif: companyData.nif || existingCompany.nif,
+        address: companyData.address !== undefined ? companyData.address : (existingCompany.address || ""),
+        description: companyData.description !== undefined ? companyData.description : (existingCompany.description || ""),
+        updatedAt: new Date().toISOString()
+      };
+      
+      const updateParams = new PutCommand({
+        TableName: "Companies",
+        Item: updatedCompany
+      });
+      
+      await dynamoDB.send(updateParams);
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(updatedCompany));
+    } catch (err) {
+      console.error("Error updating company:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
+
+// Delete a company
+else if (req.method === "DELETE" && req.url.match(/^\/companies\/[^\/]+$/)) {
+  // Extract companyId from URL
+  const companyId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+
+  // Use DeleteCommand with companyId as the primary key
+  const deleteParams = new DeleteCommand({
+    TableName: "Companies",
+    Key: {
+      companyId: companyId
+    }
+  });
+  
+  dynamoDB.send(deleteParams)
+    .then(() => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Company deleted successfully" }));
+    })
+    .catch((err) => {
+      console.error("Error deleting company:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
   // 404 Not Found for all other routes
   else {
     res.writeHead(404, { "Content-Type": "application/json" });

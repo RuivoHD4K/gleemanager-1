@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import LoadingSpinner from "../../components/LoadingSpinner/LoadingSpinner";
 import { useToast } from "../../components/Toast/ToastContext";
@@ -6,8 +6,9 @@ import "./ProjectManagement.css";
 
 const ProjectManagement = () => {
   const [projects, setProjects] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState(null);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
   const toast = useToast();
   const [selectedProject, setSelectedProject] = useState(null);
   const [formData, setFormData] = useState({
@@ -28,9 +29,18 @@ const ProjectManagement = () => {
 
   // Character count state
   const [charCount, setCharCount] = useState({
-    company: 0,
     description: 0
   });
+
+  // Company dropdown states
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+  const [showNewCompanyDropdown, setShowNewCompanyDropdown] = useState(false);
+  const [companySearch, setCompanySearch] = useState("");
+  const [newCompanySearch, setNewCompanySearch] = useState("");
+  const companyDropdownRef = useRef(null);
+  const newCompanyDropdownRef = useRef(null);
+  const companyBtnRef = useRef(null);
+  const newCompanyBtnRef = useRef(null);
 
   // Delete confirmation modal state
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
@@ -40,6 +50,7 @@ const ProjectManagement = () => {
   // Fetch projects on component mount
   useEffect(() => {
     fetchProjects();
+    fetchCompanies();
   }, []);
 
   // Update form data when a project is selected
@@ -55,11 +66,30 @@ const ProjectManagement = () => {
       
       // Update character counts
       setCharCount({
-        company: (selectedProject.company || "").length,
         description: (selectedProject.description || "").length
       });
     }
   }, [selectedProject]);
+
+  // Handle clicking outside of company dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (companyDropdownRef.current && !companyDropdownRef.current.contains(event.target) &&
+          companyBtnRef.current && !companyBtnRef.current.contains(event.target)) {
+        setShowCompanyDropdown(false);
+      }
+      
+      if (newCompanyDropdownRef.current && !newCompanyDropdownRef.current.contains(event.target) &&
+          newCompanyBtnRef.current && !newCompanyBtnRef.current.contains(event.target)) {
+        setShowNewCompanyDropdown(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const fetchProjects = async (showLoading = true) => {
     try {
@@ -126,19 +156,47 @@ const ProjectManagement = () => {
     }
   };
 
+  const fetchCompanies = async () => {
+    try {
+      setLoadingCompanies(true);
+      
+      const token = localStorage.getItem("authToken");
+      
+      // Fetch companies from the database
+      const response = await fetch("http://localhost:5000/companies", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch companies");
+      }
+      
+      const data = await response.json();
+      
+      // Update companies array
+      setCompanies(data);
+    } catch (err) {
+      console.error("Error fetching companies:", err);
+      showNotification("Failed to load companies", "error");
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
     // Update character counts for limited fields
-    if (name === "company" || name === "description") {
+    if (name === "description") {
       setCharCount(prev => ({
         ...prev,
         [name]: value.length
       }));
       
       // Prevent exceeding the max length
-      if ((name === "company" && value.length > 50) || 
-          (name === "description" && value.length > 500)) {
+      if (name === "description" && value.length > 500) {
         return;
       }
     }
@@ -153,8 +211,7 @@ const ProjectManagement = () => {
     const { name, value } = e.target;
     
     // Prevent exceeding the max length for new project data
-    if ((name === "company" && value.length > 50) || 
-        (name === "description" && value.length > 500)) {
+    if (name === "description" && value.length > 500) {
       return;
     }
     
@@ -162,6 +219,34 @@ const ProjectManagement = () => {
       ...newProjectData,
       [name]: value
     });
+  };
+
+  const handleCompanySelect = (companyName) => {
+    setFormData({ ...formData, company: companyName });
+    setShowCompanyDropdown(false);
+    setCompanySearch("");
+  };
+
+  const handleNewCompanySelect = (companyName) => {
+    setNewProjectData({ ...newProjectData, company: companyName });
+    setShowNewCompanyDropdown(false);
+    setNewCompanySearch("");
+  };
+
+  const handleCompanySearch = (e) => {
+    setCompanySearch(e.target.value);
+  };
+
+  const handleNewCompanySearch = (e) => {
+    setNewCompanySearch(e.target.value);
+  };
+
+  const toggleCompanyDropdown = () => {
+    setShowCompanyDropdown(!showCompanyDropdown);
+  };
+
+  const toggleNewCompanyDropdown = () => {
+    setShowNewCompanyDropdown(!showNewCompanyDropdown);
   };
 
   const handleProjectSelect = (project) => {
@@ -327,7 +412,25 @@ const ProjectManagement = () => {
     }
   };
 
-   return (
+  // Arrow down icon component
+  const ArrowDownIcon = () => (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="14" 
+      height="14" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      className="dropdown-arrow-icon"
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+
+  return (
     <LoadingSpinner isLoading={loading}>
       <div className="project-management-container">
         <div className="page-header">
@@ -393,14 +496,50 @@ const ProjectManagement = () => {
                 
                 <div className="form-group">
                   <label htmlFor="company">Company</label>
-                  <input
-                    type="text"
-                    id="company"
-                    name="company"
-                    value={formData.company}
-                    onChange={handleInputChange}
-
-                  />
+                  <div className="dropdown-container">
+                    <button
+                      type="button"
+                      className="dropdown-button"
+                      onClick={toggleCompanyDropdown}
+                      ref={companyBtnRef}
+                    >
+                      <span className="dropdown-button-text">
+                        {formData.company || "Select a company"}
+                      </span>
+                      <ArrowDownIcon />
+                    </button>
+                    {showCompanyDropdown && (
+                      <div className="dropdown-menu" ref={companyDropdownRef}>
+                        <input
+                          type="text"
+                          className="dropdown-search"
+                          placeholder="Search companies..."
+                          value={companySearch}
+                          onChange={handleCompanySearch}
+                          autoFocus
+                        />
+                        <div className="dropdown-items">
+                          {loadingCompanies ? (
+                            <div className="dropdown-loading">Loading...</div>
+                          ) : (
+                            companies
+                              .filter(company => 
+                                company.companyName.toLowerCase().includes(companySearch.toLowerCase())
+                              )
+                              .map(company => (
+                                <div 
+                                  key={company.companyId} 
+                                  className="dropdown-item"
+                                  onClick={() => handleCompanySelect(company.companyName)}
+                                >
+                                  {company.companyName}
+                                </div>
+                              ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="form-group">
@@ -465,14 +604,10 @@ const ProjectManagement = () => {
                   </button>
                 </div>
               </form>
-              
-              
-              
             ) : (
               <p>Select a project to edit</p>
             )}
           </div>
-          
         </div>
         
         {/* Add Project Modal */}
@@ -495,13 +630,50 @@ const ProjectManagement = () => {
                 
                 <div className="form-group">
                   <label htmlFor="new-company">Company</label>
-                  <input
-                    type="text"
-                    id="new-company"
-                    name="company"
-                    value={newProjectData.company}
-                    onChange={handleNewProjectInputChange}
-                  />
+                  <div className="dropdown-container">
+                    <button
+                      type="button"
+                      className="dropdown-button"
+                      onClick={toggleNewCompanyDropdown}
+                      ref={newCompanyBtnRef}
+                    >
+                      <span className="dropdown-button-text">
+                        {newProjectData.company || "Select a company"}
+                      </span>
+                      <ArrowDownIcon />
+                    </button>
+                    {showNewCompanyDropdown && (
+                      <div className="dropdown-menu" ref={newCompanyDropdownRef}>
+                        <input
+                          type="text"
+                          className="dropdown-search"
+                          placeholder="Search companies..."
+                          value={newCompanySearch}
+                          onChange={handleNewCompanySearch}
+                          autoFocus
+                        />
+                        <div className="dropdown-items">
+                          {loadingCompanies ? (
+                            <div className="dropdown-loading">Loading...</div>
+                          ) : (
+                            companies
+                              .filter(company => 
+                                company.companyName.toLowerCase().includes(newCompanySearch.toLowerCase())
+                              )
+                              .map(company => (
+                                <div 
+                                  key={company.companyId} 
+                                  className="dropdown-item"
+                                  onClick={() => handleNewCompanySelect(company.companyName)}
+                                >
+                                  {company.companyName}
+                                </div>
+                              ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="form-group">
