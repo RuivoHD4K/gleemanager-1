@@ -45,6 +45,10 @@ const UserManagement = () => {
   const [assignedProjects, setAssignedProjects] = useState([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   
+  // New search states
+  const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [projectSearchTerm, setProjectSearchTerm] = useState("");
+  
   const navigate = useNavigate();
 
   useEffect(() =>  {
@@ -136,6 +140,24 @@ const UserManagement = () => {
     }
   };
 
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => {
+    const searchTermLower = userSearchTerm.toLowerCase();
+    return (
+      user.email.toLowerCase().includes(searchTermLower) ||
+      (user.username && user.username.toLowerCase().includes(searchTermLower))
+    );
+  });
+
+  // Filter projects based on search term
+  const filteredProjects = projects.filter(project => {
+    const searchTermLower = projectSearchTerm.toLowerCase();
+    return (
+      project.projectName.toLowerCase().includes(searchTermLower) ||
+      (project.company && project.company.toLowerCase().includes(searchTermLower))
+    );
+  });
+
   // Fetch all projects
   const fetchProjects = async () => {
     try {
@@ -223,6 +245,7 @@ const UserManagement = () => {
 
   // Handle project assignment modal
   const handleOpenProjectAssignModal = async () => {
+    setProjectSearchTerm(""); // Reset project search term
     await fetchProjects();
     await fetchUserProjects(selectedUser.userId);
     setShowProjectAssignModal(true);
@@ -694,6 +717,14 @@ const UserManagement = () => {
     </svg>
   );
 
+  // Search Icon for search inputs
+  const SearchIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+  );
+
   // Exclamation Icon for password warning
   const ExclamationIcon = () => (
     <span className="password-warning">!</span>
@@ -715,12 +746,31 @@ const UserManagement = () => {
           {/* Users list card */}
           <div className="dashboard-card users-list-card">
             <h3>Users</h3>
+            
+            {/* Search bar for users */}
+            <div className="search-container">
+              <div className="search-input-wrapper">
+                <SearchIcon />
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={userSearchTerm}
+                  onChange={(e) => setUserSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+              </div>
+            </div>
+            
             <div className="users-list-container">
-              {users.length === 0 ? (
-                <p>No users found</p>
+              {filteredUsers.length === 0 ? (
+                userSearchTerm ? (
+                  <p className="no-results">No users found matching "{userSearchTerm}"</p>
+                ) : (
+                  <p>No users found</p>
+                )
               ) : (
                 <ul className="users-select-list">
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <li 
                       key={user.userId} 
                       onClick={() => handleUserSelect(user)}
@@ -1045,10 +1095,28 @@ const UserManagement = () => {
             <div className="modal-content project-assignment-modal">
               <h3>Assign Projects to {selectedUser.username || selectedUser.email}</h3>
               
+              {/* Project search bar */}
+              <div className="search-container">
+                <div className="search-input-wrapper">
+                  <SearchIcon />
+                  <input
+                    type="text"
+                    placeholder="Search projects..."
+                    value={projectSearchTerm}
+                    onChange={(e) => setProjectSearchTerm(e.target.value)}
+                    className="search-input"
+                  />
+                </div>
+              </div>
+              
               {isLoadingProjects ? (
                 <div className="loading-indicator">Loading projects...</div>
-              ) : projects.length === 0 ? (
-                <p>No projects available to assign</p>
+              ) : filteredProjects.length === 0 ? (
+                projectSearchTerm ? (
+                  <p className="no-results">No projects found matching "{projectSearchTerm}"</p>
+                ) : (
+                  <p>No projects available to assign</p>
+                )
               ) : (
                 <>
                   <p className="modal-instruction">
@@ -1056,7 +1124,7 @@ const UserManagement = () => {
                   </p>
                   <div className="projects-list-container assignment-list">
                     <ul className="project-assignment-list">
-                      {projects.map(project => (
+                      {filteredProjects.map(project => (
                         <li key={project.projectId} className="project-assignment-item">
                           <label className="project-checkbox-label">
                             <input

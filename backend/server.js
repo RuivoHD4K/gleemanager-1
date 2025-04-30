@@ -6,6 +6,8 @@ const { v4: uuidv4 } = require("uuid"); // You'll need to install this: npm inst
 const fs = require("fs");
 const path = require("path");
 const busboy = require('busboy'); // You'll need to install this: npm install busboy
+const MAX_ACTIVITIES = 50;
+const activityLog = [];
 
 // Encryption functions
 function generateSalt() {
@@ -79,6 +81,78 @@ try {
   console.error("Error loading sessions from disk:", error);
   // Continue with empty token store
   tokenStore = new Map();
+}
+
+// Function to add a new activity to the log
+const logActivity = async (userId, activityType, details = {}) => {
+  try {
+    // Get the user info if available
+    let userInfo = { userId };
+    
+    if (userId) {
+      // Get the user from DynamoDB to access their details
+      const userParams = new GetCommand({
+        TableName: "Users",
+        Key: { userId }
+      });
+      
+      const userResult = await dynamoDB.send(userParams);
+      
+      if (userResult.Item) {
+        userInfo = {
+          userId,
+          email: userResult.Item.email,
+          username: userResult.Item.username || userResult.Item.email.split('@')[0]
+        };
+      }
+    }
+    
+    // Create activity entry
+    const activity = {
+      timestamp: new Date().toISOString(),
+      userInfo,
+      type: activityType,
+      details
+    };
+    
+    // Add to the front of the array (newest first)
+    activityLog.unshift(activity);
+    
+    // Trim the array if it's too long
+    if (activityLog.length > MAX_ACTIVITIES) {
+      activityLog.length = MAX_ACTIVITIES;
+    }
+    
+    console.log(`Activity logged: ${activityType} by ${userInfo.email || userId}`);
+  } catch (err) {
+    console.error("Error logging activity:", err);
+  }
+};
+
+function formatTimeAgo(date) {
+  const now = new Date();
+  const diffMs = now - new Date(date);
+  
+  // Less than a minute
+  if (diffMs < 60000) {
+    return "just now";
+  }
+  
+  // Less than an hour
+  if (diffMs < 3600000) {
+    const minutes = Math.floor(diffMs / 60000);
+    return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+  }
+  
+  // Less than a day
+  if (diffMs < 86400000) {
+    const hours = Math.floor(diffMs / 3600000);
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+  }
+  
+  // More than a day
+  const days = Math.floor(diffMs / 86400000);
+  return `${days} ${days === 1 ? 'day' : 'days'} ago`;
 }
 
 // Function to save sessions to disk
@@ -244,6 +318,61 @@ const server = http.createServer((req, res) => {
   // Get online users endpoint
   else if (req.method === "GET" && req.url === "/online-users") {
     handleGetOnlineUsers(req, res, token);
+  }
+
+  else if (req.method === "GET" && req.url === "/activity") {
+    // Check if token is valid
+    if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Unauthorized" }));
+    }
+    
+    // Format activity log entries into human-readable strings
+    const formattedActivities = activityLog.map(activity => {
+      const timeAgo = formatTimeAgo(activity.timestamp);
+      const username = activity.userInfo.username || activity.userInfo.email || 'Unknown user';
+      
+      let message = '';
+      switch (activity.type) {
+        case 'user_created':
+          message = `${username} created a new user: ${activity.details.email || 'New user'}`;
+          break;
+        case 'user_deleted':
+          message = `${username} deleted user: ${activity.details.email || 'Unknown user'}`;
+          break;
+        case 'project_created':
+          message = `${username} created a new project: ${activity.details.projectName || 'New project'}`;
+          break;
+        case 'project_deleted':
+          message = `${username} deleted project: ${activity.details.projectName || 'Unknown project'}`;
+          break;
+        case 'company_created':
+          message = `${username} created a new company: ${activity.details.companyName || 'New company'}`;
+          break;
+        case 'company_deleted':
+          message = `${username} deleted company: ${activity.details.companyName || 'Unknown company'}`;
+          break;
+        case 'template_uploaded':
+          message = `${username} uploaded a new Excel template: ${activity.details.name || 'New template'}`;
+          break;
+        case 'template_deleted':
+          message = `${username} deleted Excel template: ${activity.details.name || 'Unknown template'}`;
+          break;
+        case 'project_assigned':
+          message = `${username} assigned ${activity.details.projectName || 'a project'} to ${activity.details.username || 'a user'}`;
+          break;
+        case 'project_unassigned':
+          message = `${username} removed ${activity.details.projectName || 'a project'} assignment from ${activity.details.username || 'a user'}`;
+          break;
+        default:
+          message = `${username} performed an action`;
+      }
+      
+      return `${message} (${timeAgo})`;
+    });
+    
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(formattedActivities));
   }
   
   // Authentication endpoint
@@ -411,6 +540,18 @@ const server = http.createServer((req, res) => {
         });
   
         await dynamoDB.send(params);
+
+        if (token && tokenStore.has(token)) {
+          const adminUserId = tokenStore.get(token).userId;
+          
+          // Log user creation activity
+          await logActivity(adminUserId, 'user_created', { 
+            email: userData.email,
+            username: userData.username || userData.email.split('@')[0]
+          });
+        }
+
+
   
         // Return success without creating a token and marking online
         // The user will need to log in separately
@@ -764,10 +905,26 @@ const server = http.createServer((req, res) => {
       res.writeHead(403, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ error: "You cannot delete your own account" }));
     }
-
+  
     // Handle request completely asynchronously
     (async () => {
       try {
+        // Get user details before deletion for activity log
+        const getUserParams = new GetCommand({
+          TableName: "Users",
+          Key: { userId: userId }
+        });
+        
+        const userResult = await dynamoDB.send(getUserParams);
+        let userDetails = null;
+        
+        if (userResult.Item) {
+          userDetails = {
+            email: userResult.Item.email,
+            username: userResult.Item.username || userResult.Item.email.split('@')[0]
+          };
+        }
+        
         // Invalidate all sessions for this user before deletion
         invalidateUserSessions(userId);
         
@@ -781,6 +938,11 @@ const server = http.createServer((req, res) => {
         
         await dynamoDB.send(deleteParams);
         console.log("User deleted successfully with ID:", userId);
+        
+        // Log the deletion activity
+        if (userDetails) {
+          await logActivity(currentUserId, 'user_deleted', userDetails);
+        }
         
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ message: "User deleted successfully" }));
@@ -951,6 +1113,12 @@ const project = {
 
       await dynamoDB.send(params);
 
+      // Log project creation (one of the required activities to log)
+      await logActivity(userId, 'project_created', {
+        projectName: projectData.projectName,
+        projectId: projectId
+      });
+
       // Format dates for response
       const responseProject = {
         ...project,
@@ -1095,24 +1263,51 @@ else if (req.method === "DELETE" && req.url.match(/^\/projects\/[^\/]+$/)) {
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
 
-  // Use DeleteCommand with projectId as the primary key
-  const deleteParams = new DeleteCommand({
-    TableName: "Projects",
-    Key: {
-      projectId: projectId
-    }
-  });
+  // Get the userId of the deleter from the token
+  const userId = tokenStore.get(token).userId;
   
-  dynamoDB.send(deleteParams)
-    .then(() => {
+  // Get project details before deletion
+  (async () => {
+    try {
+      // Fetch project details first for the activity log
+      const getProjectParams = new GetCommand({
+        TableName: "Projects",
+        Key: { projectId: projectId }
+      });
+      
+      const projectResult = await dynamoDB.send(getProjectParams);
+      let projectDetails = null;
+      
+      if (projectResult.Item) {
+        projectDetails = {
+          projectName: projectResult.Item.projectName,
+          projectId: projectId
+        };
+      }
+      
+      // Delete the project
+      const deleteParams = new DeleteCommand({
+        TableName: "Projects",
+        Key: {
+          projectId: projectId
+        }
+      });
+      
+      await dynamoDB.send(deleteParams);
+      
+      // Log the deletion activity
+      if (projectDetails) {
+        await logActivity(userId, 'project_deleted', projectDetails);
+      }
+      
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ message: "Project deleted successfully" }));
-    })
-    .catch((err) => {
+    } catch (err) {
       console.error("Error deleting project:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
-    });
+    }
+  })();
 }
   
 // Get projects assigned to a user
@@ -1286,6 +1481,9 @@ else if (req.method === "DELETE" && req.url.match(/^\/users\/[^\/]+\/projects\/[
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
   
+  // Get the ID of the user performing the action
+  const currentUserId = tokenStore.get(token).userId;
+  
   // Handle async operation
   (async () => {
     try {
@@ -1306,6 +1504,31 @@ else if (req.method === "DELETE" && req.url.match(/^\/users\/[^\/]+\/projects\/[
         return res.end(JSON.stringify({ error: "Assignment not found" }));
       }
       
+      // Get user and project details for the activity log
+      const [userResult, projectResult] = await Promise.all([
+        dynamoDB.send(new GetCommand({
+          TableName: "Users",
+          Key: { userId }
+        })),
+        dynamoDB.send(new GetCommand({
+          TableName: "Projects",
+          Key: { projectId }
+        }))
+      ]);
+      
+      let assignmentDetails = {
+        userId,
+        projectId
+      };
+      
+      if (userResult.Item) {
+        assignmentDetails.username = userResult.Item.username || userResult.Item.email.split('@')[0];
+      }
+      
+      if (projectResult.Item) {
+        assignmentDetails.projectName = projectResult.Item.projectName;
+      }
+      
       // Delete the assignment
       const assignment = result.Items[0];
       
@@ -1318,6 +1541,9 @@ else if (req.method === "DELETE" && req.url.match(/^\/users\/[^\/]+\/projects\/[
       
       await dynamoDB.send(deleteParams);
       
+      // Log the unassignment activity
+      await logActivity(currentUserId, 'project_unassigned', assignmentDetails);
+      
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ 
         message: "Project unassigned from user successfully" 
@@ -1327,9 +1553,8 @@ else if (req.method === "DELETE" && req.url.match(/^\/users\/[^\/]+\/projects\/[
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
     }
-    
   })();
-}  
+} 
 
   // Excel Templates endpoints
 // Get all Excel templates
@@ -1462,6 +1687,11 @@ else if (req.method === "POST" && req.url === "/excel-templates") {
       });
       
       await dynamoDB.send(params);
+
+      await logActivity(userId, 'template_uploaded', {
+        name: templateData.name,
+        templateId: templateData.templateId
+      });
       
       // Remove temporary file
       fs.unlinkSync(filePath);
@@ -1614,25 +1844,53 @@ else if (req.method === "DELETE" && req.url.match(/^\/excel-templates\/[^\/]+$/)
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
   
-  // Delete template from DynamoDB
-  const params = new DeleteCommand({
-    TableName: "ExcelTemplates",
-    Key: {
-      templateId: templateId
-    }
-  });
+  // Get the userId of the deleter from the token
+  const userId = tokenStore.get(token).userId;
   
-  dynamoDB.send(params)
-    .then(() => {
+  // Get template details before deletion
+  (async () => {
+    try {
+      // Fetch template details for the activity log
+      const getTemplateParams = new GetCommand({
+        TableName: "ExcelTemplates",
+        Key: { templateId: templateId }
+      });
+      
+      const templateResult = await dynamoDB.send(getTemplateParams);
+      let templateDetails = null;
+      
+      if (templateResult.Item) {
+        templateDetails = {
+          name: templateResult.Item.name,
+          templateId: templateId
+        };
+      }
+      
+      // Delete template from DynamoDB
+      const deleteParams = new DeleteCommand({
+        TableName: "ExcelTemplates",
+        Key: {
+          templateId: templateId
+        }
+      });
+      
+      await dynamoDB.send(deleteParams);
+      
+      // Log the deletion activity
+      if (templateDetails) {
+        await logActivity(userId, 'template_deleted', templateDetails);
+      }
+      
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ message: "Template deleted successfully" }));
-    })
-    .catch((err) => {
+    } catch (err) {
       console.error("Error deleting template:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
-    });
+    }
+  })();
 }
+
 
 else if (req.method === "GET" && req.url === "/companies") {
   // Check if token is valid
@@ -1714,6 +1972,9 @@ else if (req.method === "POST" && req.url === "/companies") {
         return res.end(JSON.stringify({ error: "Unauthorized" }));
       }
       
+      // Get the userId of the creator from the token
+      const userId = tokenStore.get(token).userId;
+      
       // Generate unique company ID
       const companyId = "comp-" + uuidv4().substring(0, 8);
       
@@ -1734,6 +1995,12 @@ else if (req.method === "POST" && req.url === "/companies") {
       });
 
       await dynamoDB.send(params);
+
+      // Make sure userId is defined before calling logActivity
+      await logActivity(userId, 'company_created', {
+        companyName: companyData.companyName,
+        companyId: companyId
+      });
 
       res.writeHead(201, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ 
@@ -1823,25 +2090,53 @@ else if (req.method === "DELETE" && req.url.match(/^\/companies\/[^\/]+$/)) {
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
 
-  // Use DeleteCommand with companyId as the primary key
-  const deleteParams = new DeleteCommand({
-    TableName: "Companies",
-    Key: {
-      companyId: companyId
-    }
-  });
+  // Get the userId of the deleter from the token
+  const userId = tokenStore.get(token).userId;
   
-  dynamoDB.send(deleteParams)
-    .then(() => {
+  // Get company details before deletion
+  (async () => {
+    try {
+      // Fetch company details for the activity log
+      const getCompanyParams = new GetCommand({
+        TableName: "Companies",
+        Key: { companyId: companyId }
+      });
+      
+      const companyResult = await dynamoDB.send(getCompanyParams);
+      let companyDetails = null;
+      
+      if (companyResult.Item) {
+        companyDetails = {
+          companyName: companyResult.Item.companyName,
+          companyId: companyId
+        };
+      }
+      
+      // Delete the company
+      const deleteParams = new DeleteCommand({
+        TableName: "Companies",
+        Key: {
+          companyId: companyId
+        }
+      });
+      
+      await dynamoDB.send(deleteParams);
+      
+      // Log the deletion activity
+      if (companyDetails) {
+        await logActivity(userId, 'company_deleted', companyDetails);
+      }
+      
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ message: "Company deleted successfully" }));
-    })
-    .catch((err) => {
+    } catch (err) {
       console.error("Error deleting company:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
-    });
+    }
+  })();
 }
+
   // 404 Not Found for all other routes
   else {
     res.writeHead(404, { "Content-Type": "application/json" });

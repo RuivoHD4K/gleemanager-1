@@ -45,6 +45,9 @@ const ProjectManagement = () => {
   // Delete confirmation modal state
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   
+  // Search state for projects list
+  const [projectSearchTerm, setProjectSearchTerm] = useState("");
+  
   const navigate = useNavigate();
 
   // Fetch projects on component mount
@@ -90,6 +93,15 @@ const ProjectManagement = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  // Filter projects based on search term
+  const filteredProjects = projects.filter(project => {
+    const searchTermLower = projectSearchTerm.toLowerCase();
+    return (
+      project.projectName.toLowerCase().includes(searchTermLower) ||
+      (project.company && project.company.toLowerCase().includes(searchTermLower))
+    );
+  });
 
   const fetchProjects = async (showLoading = true) => {
     try {
@@ -430,6 +442,14 @@ const ProjectManagement = () => {
     </svg>
   );
 
+  // Search Icon for search inputs
+  const SearchIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+  );
+
   return (
     <LoadingSpinner isLoading={loading}>
       <div className="project-management-container">
@@ -446,12 +466,31 @@ const ProjectManagement = () => {
           {/* Projects list card */}
           <div className="dashboard-card projects-list-card">
             <h3>Projects</h3>
+            
+            {/* Search bar for projects */}
+            <div className="search-container">
+              <div className="search-input-wrapper">
+                <SearchIcon />
+                <input
+                  type="text"
+                  placeholder="Search projects..."
+                  value={projectSearchTerm}
+                  onChange={(e) => setProjectSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+              </div>
+            </div>
+            
             <div className="projects-list-container">
-              {projects.length === 0 ? (
-                <p>No projects found</p>
+              {filteredProjects.length === 0 ? (
+                projectSearchTerm ? (
+                  <p className="no-results">No projects found matching "{projectSearchTerm}"</p>
+                ) : (
+                  <p>No projects found</p>
+                )
               ) : (
                 <ul className="projects-select-list">
-                  {projects.map((project) => (
+                  {filteredProjects.map((project) => (
                     <li 
                       key={project.projectId} 
                       onClick={() => handleProjectSelect(project)}

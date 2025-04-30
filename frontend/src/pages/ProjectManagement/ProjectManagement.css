@@ -13,11 +13,14 @@
 /* Projects list styles */
 .projects-list-card {
   min-height: 500px;
+  display: flex;
+  flex-direction: column;
 }
 
 .projects-list-container {
-  max-height: 450px;
+  max-height: 800px;
   overflow-y: auto;
+  flex-grow: 1;
 }
 
 .projects-select-list {
@@ -67,6 +70,54 @@
   color: #555;
   margin-top: 0.3rem;
   font-style: italic;
+}
+
+/* Search container and input styling */
+.search-container {
+  margin-bottom: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: white;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.8rem;
+  padding-left: 2.5rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 4px;
+  font-size: 1rem;
+  background-color: var(--gray-bg);
+  transition: var(--transition);
+}
+
+.search-input:focus {
+  outline: none;
+  background-color: #fff;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.8rem;
+  color: #666;
+}
+
+.no-results {
+  padding: 1rem;
+  color: #666;
+  font-style: italic;
+  text-align: center;
 }
 
 /* Project edit form */
