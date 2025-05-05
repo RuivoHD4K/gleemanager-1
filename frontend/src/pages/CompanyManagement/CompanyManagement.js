@@ -28,6 +28,9 @@ const CompanyManagement = () => {
     description: 0
   });
 
+  // Search state
+  const [companySearchTerm, setCompanySearchTerm] = useState("");
+
   // Delete confirmation modal state
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   
@@ -54,6 +57,16 @@ const CompanyManagement = () => {
       });
     }
   }, [selectedCompany]);
+
+  // Filter companies based on search term
+  const filteredCompanies = companies.filter(company => {
+    const searchTermLower = companySearchTerm.toLowerCase();
+    return (
+      company.companyName.toLowerCase().includes(searchTermLower) ||
+      company.nif.toLowerCase().includes(searchTermLower) ||
+      (company.address && company.address.toLowerCase().includes(searchTermLower))
+    );
+  });
 
   const fetchCompanies = async (showLoading = true) => {
     try {
@@ -314,6 +327,14 @@ const CompanyManagement = () => {
     }
   };
 
+  // Search Icon for search inputs
+  const SearchIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+  );
+
   return (
     <LoadingSpinner isLoading={loading}>
       <div className="company-management-container">
@@ -330,12 +351,31 @@ const CompanyManagement = () => {
           {/* Companies list card */}
           <div className="dashboard-card companies-list-card">
             <h3>Companies</h3>
+            
+            {/* Search bar for companies */}
+            <div className="search-container">
+              <div className="search-input-wrapper">
+                <SearchIcon />
+                <input
+                  type="text"
+                  placeholder="Search companies..."
+                  value={companySearchTerm}
+                  onChange={(e) => setCompanySearchTerm(e.target.value)}
+                  className="search-input"
+                />
+              </div>
+            </div>
+            
             <div className="companies-list-container">
-              {companies.length === 0 ? (
-                <p>No companies found</p>
+              {filteredCompanies.length === 0 ? (
+                companySearchTerm ? (
+                  <p className="no-results">No companies found matching "{companySearchTerm}"</p>
+                ) : (
+                  <p>No companies found</p>
+                )
               ) : (
                 <ul className="companies-select-list">
-                  {companies.map((company) => (
+                  {filteredCompanies.map((company) => (
                     <li 
                       key={company.companyId} 
                       onClick={() => handleCompanySelect(company)}
