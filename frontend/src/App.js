@@ -4,7 +4,8 @@ import Login from "./pages/Login/Login";
 import AdminDashboard from "./pages/Dashboard/AdminDashboard";
 import UserDashboard from "./pages/Dashboard/UserDashboard";
 import UserManagement from "./pages/UserManagement/UserManagement";
-import ProjectManagement from "./pages/ProjectManagement/ProjectManagement"; // Import the new component
+import ProjectManagement from "./pages/ProjectManagement/ProjectManagement";
+import RouteManagement from "./pages/RouteManagement/RouteManagement"; // Import the new component
 import Profile from "./pages/Profile/Profile";
 import ChangePassword from "./pages/ChangePassword/ChangePassword";
 import ExcelTemplates from "./pages/ExcelTemplates/ExcelTemplates";
@@ -224,6 +225,18 @@ function App() {
               } 
             />
             
+            {/* Route Management route - admin only */}
+            <Route 
+              path="route-management" 
+              element={
+                userRole === "admin" ? (
+                  <RouteManagement />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              } 
+            />
+            
             {/* Company Management route - admin only */}
             <Route 
               path="company-management" 
@@ -235,7 +248,6 @@ function App() {
                 )
               } 
             />
-
 
             {/* Excel Templates route - admin only */}
             <Route 

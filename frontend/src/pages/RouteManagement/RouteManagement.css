@@ -1,0 +1,297 @@
+/* RouteManagement.css */
+.route-management-container {
+  width: 100%;
+}
+
+.route-management-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Routes list styles */
+.routes-list-card {
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
+.routes-list-container {
+  max-height: 800px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.routes-select-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.routes-select-list li {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--light-gray);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.routes-select-list li:hover {
+  background-color: var(--gray-bg);
+}
+
+.routes-select-list li.selected {
+  background-color: rgba(248, 84, 68, 0.1);
+  border-left: 3px solid var(--primary-color);
+}
+
+.route-list-item {
+  display: flex;
+  justify-content: space-between;
+}
+
+.route-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.route-locations {
+  font-weight: 500;
+}
+
+.route-length {
+  display: inline-block;
+  font-size: 0.8rem;
+  color: #666;
+  background-color: var(--gray-bg);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  margin-top: 0.3rem;
+  max-width: fit-content;
+}
+
+/* Search container and input styling */
+.search-container {
+  margin-bottom: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: white;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.8rem;
+  padding-left: 2.5rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 4px;
+  font-size: 1rem;
+  background-color: var(--gray-bg);
+  transition: var(--transition);
+}
+
+.search-input:focus {
+  outline: none;
+  background-color: #fff;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.8rem;
+  color: #666;
+}
+
+.no-results {
+  padding: 1rem;
+  color: #666;
+  font-style: italic;
+  text-align: center;
+}
+
+/* Route edit form */
+.route-edit-card {
+  min-height: 500px;
+}
+
+.card-header-with-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.card-header-with-actions h3 {
+  margin-bottom: 0;
+}
+
+.route-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  margin-top: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: var(--text-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-group input,
+.form-group select {
+  padding: 0.8rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.1);
+}
+
+/* Form action buttons layout */
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-content: space-between;
+}
+
+/* Left-aligned buttons group */
+.action-buttons-left {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Button styling */
+.form-actions button {
+  padding: 0.8rem 1.2rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.save-btn {
+  background-color: var(--primary-color);
+  color: white;
+  flex: 1;
+}
+
+.save-btn:hover {
+  background-color: var(--primary-dark);
+}
+
+.delete-btn {
+  background-color: var(--danger-color, #dc3545);
+  color: white;
+  min-width: 120px;
+}
+
+.delete-btn:hover {
+  background-color: #bd2130;
+}
+
+.cancel-btn {
+  background-color: var(--gray-bg);
+  color: var(--text-color);
+}
+
+.cancel-btn:hover {
+  background-color: var(--light-gray);
+}
+
+/* Modal styles */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: var(--card-shadow);
+}
+
+.modal-content h3 {
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.warning-text {
+  color: var(--danger-color, #dc3545);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Authentication modal styles */
+.auth-form {
+  margin-top: 1rem;
+}
+
+.auth-error {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color, #dc3545);
+  padding: 0.8rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .route-management-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .routes-list-card {
+    min-height: 300px;
+  }
+  
+  .routes-list-container {
+    max-height: 400px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .delete-btn {
+    margin-top: 0.5rem;
+  }
+}

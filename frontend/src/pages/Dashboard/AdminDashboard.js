@@ -34,9 +34,9 @@ const AdminDashboard = () => {
       path: "/company-management"
     },
     {
-      icon: <HelpCircle size={30} />,
-      label: "Example",
-      path: "/"
+      icon: <Building2 size={30} />,
+      label: "Route Managemet",
+      path: "/route-management"
     },
     // Add more items for pagination demo
     {

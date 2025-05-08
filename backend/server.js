@@ -364,6 +364,12 @@ const server = http.createServer((req, res) => {
         case 'project_unassigned':
           message = `${username} removed ${activity.details.projectName || 'a project'} assignment from ${activity.details.username || 'a user'}`;
           break;
+        case 'route_created':
+          message = `${username} created a new route from ${activity.details.startLocation} to ${activity.details.destination}`;
+          break;
+        case 'route_deleted':
+          message = `${username} deleted route from ${activity.details.startLocation} to ${activity.details.destination}`;
+          break;
         default:
           message = `${username} performed an action`;
       }
@@ -2131,6 +2137,259 @@ else if (req.method === "DELETE" && req.url.match(/^\/companies\/[^\/]+$/)) {
       res.end(JSON.stringify({ message: "Company deleted successfully" }));
     } catch (err) {
       console.error("Error deleting company:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  })();
+}
+// Get all routes
+else if (req.method === "GET" && req.url === "/routes") {
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+
+  const params = new ScanCommand({ TableName: "Routes" });
+
+  dynamoDB.send(params)
+    .then((data) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(data.Items || []));
+    })
+    .catch((err) => {
+      console.error("Error fetching routes:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
+
+// Get a single route by ID
+else if (req.method === "GET" && req.url.match(/^\/routes\/[^\/]+$/)) {
+  // Extract routeId from URL
+  const routeId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Get route by primary key (routeId)
+  const params = new GetCommand({
+    TableName: "Routes",
+    Key: {
+      routeId: routeId
+    }
+  });
+  
+  dynamoDB.send(params)
+    .then((data) => {
+      if (!data.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Route not found" }));
+      }
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(data.Item));
+    })
+    .catch((err) => {
+      console.error("Error fetching route:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
+
+// Create a new route
+else if (req.method === "POST" && req.url === "/routes") {
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+
+  req.on("end", async () => {
+    try {
+      const routeData = JSON.parse(body);
+      
+      // Validate route input
+      if (!routeData.startLocation || !routeData.destination || routeData.routeLength === undefined) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Start location, destination, and route length are required" }));
+      }
+      
+      // Check if token is valid
+      if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Unauthorized" }));
+      }
+      
+      // Generate unique route ID
+      const routeId = "route-" + uuidv4().substring(0, 8);
+      
+      // Get the userId of the creator from the token
+      const userId = tokenStore.get(token).userId;
+      
+      // Create the route object
+      const route = {
+        routeId,
+        startLocation: routeData.startLocation,
+        destination: routeData.destination,
+        routeLength: routeData.routeLength,
+        createdBy: userId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      const params = new PutCommand({
+        TableName: "Routes",
+        Item: route
+      });
+
+      await dynamoDB.send(params);
+
+      // Log route creation activity
+      await logActivity(userId, 'route_created', {
+        startLocation: routeData.startLocation,
+        destination: routeData.destination,
+        routeId: routeId
+      });
+
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ 
+        message: "Route created successfully",
+        route: route
+      }));
+    } catch (err) {
+      console.error("Error creating route:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
+
+// Update a route
+else if (req.method === "PUT" && req.url.match(/^\/routes\/[^\/]+$/)) {
+  // Extract routeId from URL
+  const routeId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+
+  req.on("end", async () => {
+    try {
+      const routeData = JSON.parse(body);
+      
+      // First, get the existing route
+      const getParams = new GetCommand({
+        TableName: "Routes",
+        Key: {
+          routeId: routeId
+        }
+      });
+      
+      const existingRouteResult = await dynamoDB.send(getParams);
+      
+      if (!existingRouteResult.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Route not found" }));
+      }
+      
+      const existingRoute = existingRouteResult.Item;
+      
+      // Update the route object
+      const updatedRoute = {
+        ...existingRoute,
+        startLocation: routeData.startLocation || existingRoute.startLocation,
+        destination: routeData.destination || existingRoute.destination,
+        routeLength: routeData.routeLength !== undefined ? routeData.routeLength : existingRoute.routeLength,
+        updatedAt: new Date().toISOString()
+      };
+      
+      const updateParams = new PutCommand({
+        TableName: "Routes",
+        Item: updatedRoute
+      });
+      
+      await dynamoDB.send(updateParams);
+      
+      // Log route update activity
+      await logActivity(tokenStore.get(token).userId, 'route_updated', {
+        routeId: routeId,
+        startLocation: updatedRoute.startLocation,
+        destination: updatedRoute.destination
+      });
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(updatedRoute));
+    } catch (err) {
+      console.error("Error updating route:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
+
+// Delete a route
+else if (req.method === "DELETE" && req.url.match(/^\/routes\/[^\/]+$/)) {
+  // Extract routeId from URL
+  const routeId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+
+  // Get the userId of the deleter from the token
+  const userId = tokenStore.get(token).userId;
+  
+  // Get route details before deletion
+  (async () => {
+    try {
+      // Fetch route details for the activity log
+      const getRouteParams = new GetCommand({
+        TableName: "Routes",
+        Key: { routeId: routeId }
+      });
+      
+      const routeResult = await dynamoDB.send(getRouteParams);
+      let routeDetails = null;
+      
+      if (routeResult.Item) {
+        routeDetails = {
+          startLocation: routeResult.Item.startLocation,
+          destination: routeResult.Item.destination,
+          routeId: routeId
+        };
+      }
+      
+      // Delete the route
+      const deleteParams = new DeleteCommand({
+        TableName: "Routes",
+        Key: {
+          routeId: routeId
+        }
+      });
+      
+      await dynamoDB.send(deleteParams);
+      
+      // Log the deletion activity
+      if (routeDetails) {
+        await logActivity(userId, 'route_deleted', routeDetails);
+      }
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Route deleted successfully" }));
+    } catch (err) {
+      console.error("Error deleting route:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
     }
