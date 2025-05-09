@@ -12,7 +12,8 @@ import {
   ChevronRight, 
   Folder,
   FileSpreadsheet,
-  Building2
+  Building2,
+  Route
 } from 'lucide-react';
 
 const Sidebar = ({ userRole, isSidebarCollapsed }) => {
@@ -169,6 +170,15 @@ const Sidebar = ({ userRole, isSidebarCollapsed }) => {
               </span>
               <span className="nav-text">Company Management</span>
             </NavLink>)}
+
+            {userRole === 'admin' && (
+            <NavLink to="/route-management" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
+              <span className="nav-icon">
+                <Route size={iconSize} />
+              </span>
+              <span className="nav-text">Route Management</span>
+            </NavLink>)}
+
           </div>
         )}
         

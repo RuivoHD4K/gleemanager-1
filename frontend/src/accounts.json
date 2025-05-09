@@ -1,14 +1,14 @@
 {
   "accounts": [
     {
-      "email": "teste1@teste.com",
-      "username": "Admin",
+      "email": "admin1@gleemanager.com",
+      "username": "Admin1",
       "password": "testeteste",
       "role": "admin"
     },
     {
-      "email": "teste2@teste.com",
-      "username": "Regular User",
+      "email": "user1@gleemanager.com",
+      "username": "User1",
       "password": "testeteste",
       "role": "user"
     }

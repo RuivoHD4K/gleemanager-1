@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UsersList from '../../components/UsersList/UsersList';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
-import { Users, FolderKanban, FileSpreadsheet, Building2, ChevronLeft, ChevronRight, Settings, HelpCircle } from 'lucide-react';
+import { Users, FolderKanban, FileSpreadsheet, Building2, ChevronLeft, ChevronRight, Settings, HelpCircle, Route} from 'lucide-react';
 
 const AdminDashboard = () => {  
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ const AdminDashboard = () => {
       path: "/company-management"
     },
     {
-      icon: <Building2 size={30} />,
+      icon: <Route size={30} />,
       label: "Route Managemet",
       path: "/route-management"
     },
