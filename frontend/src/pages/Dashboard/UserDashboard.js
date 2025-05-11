@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
+import { useToast } from '../../components/Toast/ToastContext';
+import { Upload, Pencil, Trash2 } from 'lucide-react';
 
 const UserDashboard = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [userStats, setUserStats] = useState({
     accountAge: 'Loading...',
@@ -11,6 +14,11 @@ const UserDashboard = () => {
     isOnline: false
   });
   const [userData, setUserData] = useState(null);
+  
+  // Signature related states
+  const [signature, setSignature] = useState(null);
+  const [signatureLoading, setSignatureLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Format the date in DD/MM/YYYY format
   const formatDate = (dateString) => {
@@ -114,10 +122,39 @@ const UserDashboard = () => {
           isOnline: userData.isOnline
         });
       }
+      
+      // Fetch signature
+      await fetchSignature();
+      
     } catch (error) {
       console.error("Error fetching user dashboard data:", error);
       // Don't update the state on error during silent updates
       // This prevents showing error messages during background refreshes
+    }
+  };
+
+  // Fetch user signature
+  const fetchSignature = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const userId = localStorage.getItem("userId");
+      
+      if (!token || !userId) return;
+      
+      const response = await fetch(`http://localhost:5000/users/${userId}/signature`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.signatureUrl) {
+          setSignature(data.signatureUrl);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching signature:", error);
     }
   };
 
@@ -138,6 +175,114 @@ const UserDashboard = () => {
       setTimeout(() => {
         setLoading(false);
       }, 50);
+    }
+  };
+
+  // Upload signature function
+  const uploadSignature = async (file) => {
+    try {
+      setSignatureLoading(true);
+      setUploadProgress(0);
+      
+      const token = localStorage.getItem("authToken");
+      const userId = localStorage.getItem("userId");
+      
+      if (!token || !userId) {
+        throw new Error("Not authenticated");
+      }
+      
+      // Create formData for file upload
+      const formData = new FormData();
+      formData.append('signature', file);
+      
+      // Set up simulated upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return prev + 10;
+        });
+      }, 200);
+      
+      // Send the file to the API
+      const response = await fetch(`http://localhost:5000/users/${userId}/signature`, {
+        method: 'POST',
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
+      if (!response.ok) {
+        throw new Error("Failed to upload signature");
+      }
+      
+      const data = await response.json();
+      setSignature(data.signatureUrl);
+      
+      toast.showSuccess("Signature uploaded successfully");
+    } catch (error) {
+      toast.showError(`Error uploading signature: ${error.message}`);
+    } finally {
+      setSignatureLoading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // Handle file input change
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Check file type
+    if (!file.type.includes('image/')) {
+      toast.showError("Please upload an image file");
+      return;
+    }
+    
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.showError("File size should be less than 2MB");
+      return;
+    }
+    
+    uploadSignature(file);
+  };
+
+  // Delete signature
+  const deleteSignature = async () => {
+    try {
+      setSignatureLoading(true);
+      
+      const token = localStorage.getItem("authToken");
+      const userId = localStorage.getItem("userId");
+      
+      if (!token || !userId) {
+        throw new Error("Not authenticated");
+      }
+      
+      const response = await fetch(`http://localhost:5000/users/${userId}/signature`, {
+        method: 'DELETE',
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to delete signature");
+      }
+      
+      setSignature(null);
+      toast.showSuccess("Signature deleted successfully");
+    } catch (error) {
+      toast.showError(`Error deleting signature: ${error.message}`);
+    } finally {
+      setSignatureLoading(false);
     }
   };
 
@@ -173,6 +318,71 @@ const UserDashboard = () => {
               <li>Connect with other users</li>
               <li>Explore the system features</li>
             </ul>
+          </div>
+          
+          {/* New Signature Upload Card */}
+          <div className="dashboard-card signature-card">
+            <h3>Your Signature</h3>
+            <div className="signature-container">
+              {signatureLoading ? (
+                <div className="signature-loading">
+                  <div className="signature-spinner"></div>
+                  {uploadProgress > 0 && (
+                    <div className="upload-progress-container">
+                      <div 
+                        className="upload-progress-bar" 
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                      <span className="upload-progress-text">{uploadProgress}%</span>
+                    </div>
+                  )}
+                </div>
+              ) : signature ? (
+                <div className="signature-image-container">
+                  <img 
+                    src={signature} 
+                    alt="Your signature" 
+                    className="signature-image" 
+                  />
+                  <div className="signature-actions">
+                    <label htmlFor="update-signature" className="signature-action-btn edit-btn">
+                      <Pencil size={16} />
+                    </label>
+                    <input
+                      type="file"
+                      id="update-signature"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      style={{ display: 'none' }}
+                    />
+                    <button 
+                      className="signature-action-btn delete-btn"
+                      onClick={deleteSignature}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="signature-upload">
+                  <p>Upload your signature to use in documents</p>
+                  <label htmlFor="signature-upload" className="signature-upload-btn">
+                    <Upload size={20} />
+                    <span>Upload Signature</span>
+                  </label>
+                  <input
+                    type="file"
+                    id="signature-upload"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                  />
+                  <p className="signature-upload-help">
+                    Supported formats: JPG, PNG, GIF (max 2MB)
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="dashboard-card">

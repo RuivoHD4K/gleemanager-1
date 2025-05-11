@@ -624,3 +624,164 @@ body {
     height: 50px;
   }
 }
+
+/* Signature Card Styling */
+.signature-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.signature-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem 0;
+  min-height: 180px;
+  position: relative;
+}
+
+.signature-image-container {
+  width: 100%;
+  height: 180px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--gray-bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.signature-image {
+  max-width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+}
+
+.signature-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.signature-image-container:hover .signature-actions {
+  opacity: 1;
+}
+
+.signature-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px !important; 
+  height: 32px !important;
+  min-width: 32px !important; 
+  border-radius: 50% !important; 
+  background-color: white;
+  color: var(--text-color);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: var(--transition);
+  padding: 0 !important; 
+}
+
+.signature-action-btn.edit-btn:hover {
+  background-color: var(--primary-light);
+  color: white;
+}
+
+.signature-action-btn.delete-btn:hover {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.signature-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.signature-upload p {
+  margin: 0;
+  color: #666;
+}
+
+.signature-upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-weight: 600;
+}
+
+.signature-upload-btn:hover {
+  background-color: var(--primary-dark);
+}
+
+.signature-upload-help {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.signature-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+}
+
+.signature-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(var(--primary-color-rgb, 248, 84, 68), 0.3);
+  border-radius: 50%;
+  border-top-color: var(--primary-color, #f85444);
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.upload-progress-container {
+  width: 200px;
+  height: 10px;
+  background-color: var(--light-gray);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 10px;
+  position: relative;
+}
+
+.upload-progress-bar {
+  height: 100%;
+  background-color: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+.upload-progress-text {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

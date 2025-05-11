@@ -2396,6 +2396,284 @@ else if (req.method === "DELETE" && req.url.match(/^\/routes\/[^\/]+$/)) {
   })();
 }
 
+// Add these endpoints to server.js after your other user-related endpoints
+
+// Get user signature
+else if (req.method === "GET" && req.url.match(/^\/users\/[^\/]+\/signature$/)) {
+  // Extract userId from URL
+  const userId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Get user by primary key (userId)
+  const params = new GetCommand({
+    TableName: "Users",
+    Key: {
+      userId: userId
+    }
+  });
+  
+  dynamoDB.send(params)
+    .then((data) => {
+      if (!data.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
+      }
+      
+      // Check if the user has a signature
+      const signatureUrl = data.Item.signatureUrl || null;
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ signatureUrl }));
+    })
+    .catch((err) => {
+      console.error("Error fetching user signature:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
+
+// Upload user signature
+else if (req.method === "POST" && req.url.match(/^\/users\/[^\/]+\/signature$/)) {
+  // Extract userId from URL
+  const userId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // First, check if the user exists and get their data
+  const getUserParams = new GetCommand({
+    TableName: "Users",
+    Key: {
+      userId: userId
+    }
+  });
+  
+  // Verify that the token user is authorized to update this user's signature
+  // Users can only update their own signature
+  const tokenUserId = tokenStore.get(token).userId;
+  if (tokenUserId !== userId) {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "You can only update your own signature" }));
+  }
+
+  // Create a temporary file path
+  const tempDir = path.join(__dirname, "temp");
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir);
+  }
+
+  // Handle multipart form data for file upload
+  const busboyInstance = busboy({ headers: req.headers });
+  
+  let filePath;
+  let fileBuffer;
+  let mimeType;
+  let originalFilename;
+  
+  busboyInstance.on('file', (name, file, info) => {
+    if (name !== 'signature') {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Invalid form field name. Expected 'signature'" }));
+    }
+    
+    const { filename, mimeType: fileMimeType } = info;
+    
+    // Validate file type is an image
+    if (!fileMimeType.startsWith('image/')) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Only image files are allowed" }));
+    }
+    
+    originalFilename = filename;
+    mimeType = fileMimeType;
+    
+    // Create a unique filename
+    const signatureId = uuidv4();
+    filePath = path.join(tempDir, `${signatureId}${path.extname(filename)}`);
+    
+    const chunks = [];
+    let fileSize = 0;
+    
+    file.on('data', (data) => {
+      chunks.push(data);
+      fileSize += data.length;
+      
+      // Check file size limit (2MB)
+      if (fileSize > 2 * 1024 * 1024) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "File size exceeds 2MB limit" }));
+        file.resume(); // Skip the rest of the file
+      }
+    });
+    
+    file.on('end', () => {
+      if (fileSize <= 2 * 1024 * 1024) {
+        fileBuffer = Buffer.concat(chunks);
+        
+        // Write file to disk temporarily
+        fs.writeFileSync(filePath, fileBuffer);
+      }
+    });
+  });
+  
+  busboyInstance.on('finish', async () => {
+    try {
+      if (!filePath || !fs.existsSync(filePath)) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "No file uploaded or file processing failed" }));
+      }
+      
+      // Get the user data first
+      const userResult = await dynamoDB.send(getUserParams);
+      
+      if (!userResult.Item) {
+        // Clean up temporary file
+        fs.unlinkSync(filePath);
+        
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
+      }
+      
+      const user = userResult.Item;
+      
+      // Convert file to base64 for storage
+      const fileContent = fs.readFileSync(filePath);
+      const fileBase64 = fileContent.toString('base64');
+      
+      // In real-world, you would likely upload this to S3 or similar
+      // For this example, we're storing in DynamoDB
+      // A more optimal solution would be to upload to S3 and store the URL
+      
+      // Create a URL-like structure for the signature
+      // In a real application, this would be the S3 URL
+      const signatureUrl = `data:${mimeType};base64,${fileBase64}`;
+      
+      // Update the user record with the signature URL
+      const updatedUser = {
+        ...user,
+        signatureUrl,
+        signatureUpdatedAt: new Date().toISOString()
+      };
+      
+      // Save the updated user data
+      const updateUserParams = new PutCommand({
+        TableName: "Users",
+        Item: updatedUser
+      });
+      
+      await dynamoDB.send(updateUserParams);
+      
+      // Clean up temporary file
+      fs.unlinkSync(filePath);
+      
+      // Log the signature update activity
+      await logActivity(userId, 'signature_updated', {
+        userId,
+        timestamp: updatedUser.signatureUpdatedAt
+      });
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ 
+        message: "Signature uploaded successfully",
+        signatureUrl
+      }));
+      
+    } catch (err) {
+      console.error("Error uploading signature:", err);
+      
+      // Clean up temporary file if it exists
+      if (filePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+  
+  req.pipe(busboyInstance);
+}
+
+// Delete user signature
+else if (req.method === "DELETE" && req.url.match(/^\/users\/[^\/]+\/signature$/)) {
+  // Extract userId from URL
+  const userId = req.url.split("/")[2];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Verify that the token user is authorized to delete this user's signature
+  // Users can only delete their own signature
+  const tokenUserId = tokenStore.get(token).userId;
+  if (tokenUserId !== userId) {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "You can only delete your own signature" }));
+  }
+  
+  // Get the user data
+  const getUserParams = new GetCommand({
+    TableName: "Users",
+    Key: {
+      userId: userId
+    }
+  });
+  
+  dynamoDB.send(getUserParams)
+    .then(async (data) => {
+      if (!data.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
+      }
+      
+      const user = data.Item;
+      
+      // Check if user has a signature
+      if (!user.signatureUrl) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "No signature found" }));
+      }
+      
+      // Remove the signature URL from the user record
+      const updatedUser = {
+        ...user,
+        signatureUrl: null,
+        signatureUpdatedAt: null
+      };
+      
+      // Save the updated user data
+      const updateUserParams = new PutCommand({
+        TableName: "Users",
+        Item: updatedUser
+      });
+      
+      await dynamoDB.send(updateUserParams);
+      
+      // Log the signature deletion activity
+      await logActivity(userId, 'signature_deleted', {
+        userId
+      });
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Signature deleted successfully" }));
+    })
+    .catch((err) => {
+      console.error("Error deleting signature:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+}
+
   // 404 Not Found for all other routes
   else {
     res.writeHead(404, { "Content-Type": "application/json" });
