@@ -1,18 +1,27 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import Login from "./pages/Login/Login";
-import AdminDashboard from "./pages/Dashboard/AdminDashboard";
-import UserDashboard from "./pages/Dashboard/UserDashboard";
-import UserManagement from "./pages/UserManagement/UserManagement";
-import ProjectManagement from "./pages/ProjectManagement/ProjectManagement";
-import RouteManagement from "./pages/RouteManagement/RouteManagement"; // Import the new component
-import Profile from "./pages/Profile/Profile";
-import ChangePassword from "./pages/ChangePassword/ChangePassword";
-import ExcelTemplates from "./pages/ExcelTemplates/ExcelTemplates";
-import CompanyManagement from "./pages/CompanyManagement/CompanyManagement";
+import { useState, useEffect, Suspense, lazy } from "react";
 import BaseLayout from "./components/Layout/BaseLayout";
 import { ToastProvider } from "./components/Toast/ToastContext";
 import "./App.css";
+
+// Lazy load all page components
+const Login = lazy(() => import("./pages/Login/Login"));
+const AdminDashboard = lazy(() => import("./pages/Dashboard/AdminDashboard"));
+const UserDashboard = lazy(() => import("./pages/Dashboard/UserDashboard"));
+const UserManagement = lazy(() => import("./pages/UserManagement/UserManagement"));
+const ProjectManagement = lazy(() => import("./pages/ProjectManagement/ProjectManagement"));
+const RouteManagement = lazy(() => import("./pages/RouteManagement/RouteManagement"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword/ChangePassword"));
+const ExcelTemplates = lazy(() => import("./pages/ExcelTemplates/ExcelTemplates"));
+const CompanyManagement = lazy(() => import("./pages/CompanyManagement/CompanyManagement"));
+
+// Create a dynamic Profile component that loads CSS separately
+const Profile = lazy(() => 
+  import("./pages/Profile/Profile").then(module => {
+    // This ensures the CSS is only loaded when Profile is actually rendered
+    return { default: module.default };
+  })
+);
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -144,129 +153,131 @@ function App() {
   return (
     <ToastProvider>
       <Router>
-        <Routes>
-          <Route 
-            path="/login" 
-            element={
-              !isAuthenticated ? (
-                <Login 
-                  setIsAuthenticated={setIsAuthenticated} 
-                  setUserRole={setUserRole}
-                  setMustChangePassword={setMustChangePassword}
-                />
-              ) : (
-                // If authenticated but needs to change password, redirect to change password
-                mustChangePassword ? (
-                  <Navigate to="/change-password" replace />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              )
-            } 
-          />
-          
-          {/* Change Password route */}
-          <Route
-            path="/change-password"
-            element={
-              isAuthenticated ? (
-                <ChangePassword setMustChangePassword={setMustChangePassword} />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          
-          {/* Protected routes wrapped in BaseLayout */}
-          <Route 
-            path="/" 
-            element={
-              isAuthenticated ? (
-                // If user must change password, redirect to change password page
-                mustChangePassword ? (
-                  <Navigate to="/change-password" replace />
-                ) : (
-                  <BaseLayout userRole={userRole} handleLogout={handleLogout} />
-                )
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          >
-            {/* Dashboard route - renders different dashboard based on role */}
+        <Suspense fallback={<div className="loading">Loading...</div>}>
+          <Routes>
             <Route 
-              index
+              path="/login" 
               element={
-                userRole === "admin" ? <AdminDashboard /> : <UserDashboard />
-              } 
-            />
-            
-            {/* Admin-only routes */}
-            <Route 
-              path="user-management" 
-              element={
-                userRole === "admin" ? (
-                  <UserManagement />
+                !isAuthenticated ? (
+                  <Login 
+                    setIsAuthenticated={setIsAuthenticated} 
+                    setUserRole={setUserRole}
+                    setMustChangePassword={setMustChangePassword}
+                  />
                 ) : (
-                  <Navigate to="/" replace />
+                  // If authenticated but needs to change password, redirect to change password
+                  mustChangePassword ? (
+                    <Navigate to="/change-password" replace />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
                 )
               } 
             />
             
-            {/* Project Management route - admin only */}
-            <Route 
-              path="project-management" 
+            {/* Change Password route */}
+            <Route
+              path="/change-password"
               element={
-                userRole === "admin" ? (
-                  <ProjectManagement />
+                isAuthenticated ? (
+                  <ChangePassword setMustChangePassword={setMustChangePassword} />
                 ) : (
-                  <Navigate to="/" replace />
+                  <Navigate to="/login" replace />
                 )
-              } 
+              }
             />
             
-            {/* Route Management route - admin only */}
+            {/* Protected routes wrapped in BaseLayout */}
             <Route 
-              path="route-management" 
+              path="/" 
               element={
-                userRole === "admin" ? (
-                  <RouteManagement />
+                isAuthenticated ? (
+                  // If user must change password, redirect to change password page
+                  mustChangePassword ? (
+                    <Navigate to="/change-password" replace />
+                  ) : (
+                    <BaseLayout userRole={userRole} handleLogout={handleLogout} />
+                  )
                 ) : (
-                  <Navigate to="/" replace />
+                  <Navigate to="/login" replace />
                 )
-              } 
-            />
-            
-            {/* Company Management route - admin only */}
-            <Route 
-              path="company-management" 
-              element={
-                userRole === "admin" ? (
-                  <CompanyManagement />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              } 
-            />
+              }
+            >
+              {/* Dashboard route - renders different dashboard based on role */}
+              <Route 
+                index
+                element={
+                  userRole === "admin" ? <AdminDashboard /> : <UserDashboard />
+                } 
+              />
+              
+              {/* Admin-only routes */}
+              <Route 
+                path="user-management" 
+                element={
+                  userRole === "admin" ? (
+                    <UserManagement />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                } 
+              />
+              
+              {/* Project Management route - admin only */}
+              <Route 
+                path="project-management" 
+                element={
+                  userRole === "admin" ? (
+                    <ProjectManagement />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                } 
+              />
+              
+              {/* Route Management route - admin only */}
+              <Route 
+                path="route-management" 
+                element={
+                  userRole === "admin" ? (
+                    <RouteManagement />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                } 
+              />
+              
+              {/* Company Management route - admin only */}
+              <Route 
+                path="company-management" 
+                element={
+                  userRole === "admin" ? (
+                    <CompanyManagement />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                } 
+              />
 
-            {/* Excel Templates route - admin only */}
-            <Route 
-              path="excel-templates" 
-              element={
-                userRole === "admin" ? (
-                  <ExcelTemplates />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              } 
-            />
-            
-            {/* Add more routes as needed */}
-            <Route path="profile" element={<Profile />} />
-            <Route path="settings" element={<div>Settings Page Coming Soon</div>} />
-            <Route path="help" element={<div>Help Page Coming Soon</div>} />
-          </Route>
-        </Routes>
+              {/* Excel Templates route - admin only */}
+              <Route 
+                path="excel-templates" 
+                element={
+                  userRole === "admin" ? (
+                    <ExcelTemplates />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                } 
+              />
+              
+              {/* Add more routes as needed */}
+              <Route path="profile" element={<Profile />} />
+              <Route path="settings" element={<div>Settings Page Coming Soon</div>} />
+              <Route path="help" element={<div>Help Page Coming Soon</div>} />
+            </Route>
+          </Routes>
+        </Suspense>
       </Router>
     </ToastProvider>
   );

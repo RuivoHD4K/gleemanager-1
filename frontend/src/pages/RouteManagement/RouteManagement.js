@@ -462,6 +462,11 @@ const RouteManagement = () => {
                   />
                 </div>
                 
+                <div className="route-details">
+                  <div className="route-id">Route ID: {selectedRoute.routeId}</div>
+                  <div className="route-created">Created: {selectedRoute.createdAt}</div>
+                </div>
+                
                 <div className="form-actions">
                   <div className="action-buttons-left">
                     <button type="submit" className="action-btn save-btn">

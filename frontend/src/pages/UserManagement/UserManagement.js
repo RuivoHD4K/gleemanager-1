@@ -859,6 +859,11 @@ const UserManagement = () => {
                   )}
                 </div>
                 
+                <div className="user-details">
+                  <div className="user-id">User ID: {selectedUser.userId}</div>
+                  <div className="user-created">Created: {selectedUser.createdAt}</div>
+                </div>
+                
                 <div className="form-actions">
                   <div className="action-buttons-left">
                     <button type="submit" className="action-btn save-btn">

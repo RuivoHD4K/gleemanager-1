@@ -170,6 +170,28 @@
   box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.1);
 }
 
+/* Route details section */
+.route-details {
+  background-color: var(--gray-bg);
+  padding: 0.8rem;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.route-id {
+  font-family: monospace;
+  color: #666;
+}
+
+.route-created {
+  color: #666;
+  font-size: 0.85rem;
+}
+
 /* Form action buttons layout */
 .form-actions {
   display: flex;
@@ -293,5 +315,11 @@
   
   .delete-btn {
     margin-top: 0.5rem;
+  }
+
+  .route-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 }

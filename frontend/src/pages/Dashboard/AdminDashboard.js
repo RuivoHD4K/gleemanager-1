@@ -38,17 +38,6 @@ const AdminDashboard = () => {
       label: "Route Managemet",
       path: "/route-management"
     },
-    // Add more items for pagination demo
-    {
-      icon: <HelpCircle size={30} />,
-      label: "Example",
-      path: "/"
-    },
-    {
-      icon: <HelpCircle size={30} />,
-      label: "Example",
-      path: "/"
-    },
   ];
 
   // Calculate number of pages needed for drawer items

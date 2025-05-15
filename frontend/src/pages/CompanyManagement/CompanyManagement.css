@@ -125,10 +125,14 @@
   margin-top: 1rem;
 }
 
+/* Company details section */
 .company-details {
   background-color: var(--gray-bg);
   padding: 0.8rem;
   border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 0.9rem;
   margin-top: 0.5rem;
 }
@@ -136,6 +140,11 @@
 .company-id {
   font-family: monospace;
   color: #666;
+}
+
+.company-created {
+  color: #666;
+  font-size: 0.85rem;
 }
 
 /* Form action buttons layout */
@@ -204,5 +213,11 @@ textarea:focus {
   
   .delete-btn {
     margin-top: 0.5rem;
+  }
+
+  .company-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 }

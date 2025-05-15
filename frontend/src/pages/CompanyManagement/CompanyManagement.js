@@ -453,6 +453,7 @@ const CompanyManagement = () => {
                 
                 <div className="company-details">
                   <div className="company-id">Company ID: {selectedCompany.companyId}</div>
+                  <div className="company-created">Created: {selectedCompany.createdAt}</div>
                 </div>
                 
                 <div className="form-actions">

@@ -216,6 +216,28 @@
   box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.1);
 }
 
+/* User details section */
+.user-details {
+  background-color: var(--gray-bg);
+  padding: 0.8rem;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.user-id {
+  font-family: monospace;
+  color: #666;
+}
+
+.user-created {
+  color: #666;
+  font-size: 0.85rem;
+}
+
 /* Form action buttons layout */
 .form-actions {
   display: flex;
@@ -642,5 +664,16 @@
 
   .assign-projects-btn {
     width: 100%;
+  }
+
+  .user-details {
+    background-color: var(--gray-bg);
+    padding: 0.8rem;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
   }
 }

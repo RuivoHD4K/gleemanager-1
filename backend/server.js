@@ -28,10 +28,83 @@ function generateToken() {
   return crypto.randomBytes(32).toString("hex");
 }
 
+function formatDateTime(dateString) {
+  if (!dateString) return null;
+  
+  let date;
+  
+  // If the dateString is already in DD/MM/YYYY format, we need to parse it correctly
+  if (typeof dateString === 'string' && dateString.includes('/')) {
+    // Check if it's in DD/MM/YYYY HH:MM format
+    const dateTimeParts = dateString.split(' ');
+    if (dateTimeParts.length >= 1) {
+      const datePart = dateTimeParts[0];
+      const timePart = dateTimeParts[1] || '00:00';
+      
+      // Parse DD/MM/YYYY
+      const [day, month, year] = datePart.split('/');
+      if (day && month && year) {
+        // Create date in correct format (month is 0-indexed)
+        date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        
+        // If there's a time part, parse it
+        if (timePart) {
+          const [hours, minutes] = timePart.split(':');
+          if (hours && minutes) {
+            date.setHours(parseInt(hours), parseInt(minutes));
+          }
+        }
+      } else {
+        // Fallback to ISO parsing
+        date = new Date(dateString);
+      }
+    } else {
+      date = new Date(dateString);
+    }
+  } else {
+    // Assume it's in ISO format or other standard format
+    date = new Date(dateString);
+  }
+  
+  // Check if the date is valid
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
+
 function formatDate(dateString) {
   if (!dateString) return null;
   
-  const date = new Date(dateString);
+  let date;
+  
+  // If the dateString is already in DD/MM/YYYY format, parse it correctly
+  if (typeof dateString === 'string' && dateString.includes('/')) {
+    const [day, month, year] = dateString.split('/');
+    if (day && month && year) {
+      // Create date in correct format (month is 0-indexed)
+      date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } else {
+      // Fallback to ISO parsing
+      date = new Date(dateString);
+    }
+  } else {
+    // Assume it's in ISO format or other standard format
+    date = new Date(dateString);
+  }
+  
+  // Check if the date is valid
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+  
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
@@ -39,12 +112,52 @@ function formatDate(dateString) {
   return `${day}/${month}/${year}`;
 }
 
-// Parse date from DD/MM/YYYY to ISO format for storage
-function parseDate(formattedDate) {
-  if (!formattedDate) return null;
-  
-  const [day, month, year] = formattedDate.split('/');
-  return new Date(year, month - 1, day).toISOString();
+// Format user data with proper date formatting
+function formatUserData(user) {
+  return {
+    ...user,
+    createdAt: formatDateTime(user.createdAt),
+    lastSeen: user.lastSeen ? formatDateTime(user.lastSeen) : null,
+    lastLogin: user.lastLogin ? formatDateTime(user.lastLogin) : null,
+    signatureUpdatedAt: user.signatureUpdatedAt ? formatDateTime(user.signatureUpdatedAt) : null
+  };
+}
+
+// Format project data with proper date formatting
+function formatProjectData(project) {
+  return {
+    ...project,
+    projectStartDate: formatDate(project.projectStartDate),
+    projectEndDate: project.projectEndDate ? formatDate(project.projectEndDate) : null,
+    createdAt: formatDateTime(project.createdAt),
+    updatedAt: formatDateTime(project.updatedAt)
+  };
+}
+
+// Format company data with proper date formatting
+function formatCompanyData(company) {
+  return {
+    ...company,
+    createdAt: formatDateTime(company.createdAt),
+    updatedAt: formatDateTime(company.updatedAt)
+  };
+}
+
+// Format route data with proper date formatting
+function formatRouteData(route) {
+  return {
+    ...route,
+    createdAt: formatDateTime(route.createdAt),
+    updatedAt: formatDateTime(route.updatedAt)
+  };
+}
+
+function formatTemplateData(template) {
+  return {
+    ...template,
+    uploadedAt: formatDateTime(template.uploadedAt),
+    lastModifiedAt: template.lastModifiedAt ? formatDateTime(template.lastModifiedAt) : null
+  };
 }
 
 // Session storage file path
@@ -451,18 +564,25 @@ const server = http.createServer((req, res) => {
           // Mark user as online
           updateOnlineStatus(user.userId, true);
           
+          // Format the user data for response
+          const formattedUser = formatUserData({
+            ...user,
+            lastLogin: previousLogin || null,
+            lastSeen: new Date().toISOString()
+          });
+          
           res.writeHead(200, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ 
             authenticated: true,
             token,
             user: {
-              userId: user.userId,
-              email: user.email,
-              username: user.username,
-              createdAt: user.createdAt,
-              lastLogin: previousLogin || null, // Include lastLogin in response
-              role: user.role || "user", // Include the role in the response
-              mustChangePassword: user.mustChangePassword || false // Include flag in response
+              userId: formattedUser.userId,
+              email: formattedUser.email,
+              username: formattedUser.username,
+              createdAt: formattedUser.createdAt,
+              lastLogin: formattedUser.lastLogin,
+              role: formattedUser.role || "user",
+              mustChangePassword: formattedUser.mustChangePassword || false
             }
           }));
         } else {
@@ -557,7 +677,8 @@ const server = http.createServer((req, res) => {
           });
         }
 
-
+        // Format the user data for response
+        const formattedUser = formatUserData(user);
   
         // Return success without creating a token and marking online
         // The user will need to log in separately
@@ -565,14 +686,14 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ 
           message: "User created successfully",
           user: { 
-            userId,
-            email: user.email,
-            username: user.username,
-            createdAt: user.createdAt,
-            role: user.role, // Include role in the response
-            mustChangePassword: user.mustChangePassword, // Include flag in response
-            isOnline: false, // Return the offline status
-            lastLogin: null // Include null lastLogin for new users
+            userId: formattedUser.userId,
+            email: formattedUser.email,
+            username: formattedUser.username,
+            createdAt: formattedUser.createdAt,
+            role: formattedUser.role,
+            mustChangePassword: formattedUser.mustChangePassword,
+            isOnline: false,
+            lastLogin: null
           }
         }));
       } catch (err) {
@@ -595,18 +716,21 @@ const server = http.createServer((req, res) => {
 
     dynamoDB.send(params)
       .then((data) => {
-        // Remove sensitive fields from response
+        // Remove sensitive fields from response and format dates
         const safeUsers = (data.Items || []).map(user => {
           const { passwordHash, salt, ...safeUser } = user;
           
           // Add online status to each user
           const onlineStatus = onlineUsers.get(user.userId);
-          return {
+          const userWithStatus = {
             ...safeUser,
             isOnline: onlineStatus ? onlineStatus.isOnline : false,
             lastSeen: onlineStatus ? onlineStatus.lastUpdated : null,
-            lastLogin: safeUser.lastLogin || null // Ensure lastLogin is included
+            lastLogin: safeUser.lastLogin || null
           };
+          
+          // Apply date formatting
+          return formatUserData(userWithStatus);
         });
         
         res.writeHead(200, { "Content-Type": "application/json" });
@@ -654,11 +778,14 @@ const server = http.createServer((req, res) => {
           ...safeUser,
           isOnline: onlineStatus ? onlineStatus.isOnline : false,
           lastSeen: onlineStatus ? onlineStatus.lastUpdated : null,
-          lastLogin: safeUser.lastLogin || null // Ensure lastLogin is included
+          lastLogin: safeUser.lastLogin || null
         };
         
+        // Apply date formatting
+        const formattedUser = formatUserData(userWithStatus);
+        
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(userWithStatus));
+        res.end(JSON.stringify(formattedUser));
       })
       .catch((err) => {
         console.error("Error fetching user:", err);
@@ -769,12 +896,13 @@ const server = http.createServer((req, res) => {
           invalidateUserSessions(userId);
         }
         
-        // Remove sensitive fields from response
+        // Remove sensitive fields from response and format dates
         const { passwordHash, salt, ...safeUser } = updatedUser;
+        const formattedUser = formatUserData(safeUser);
         
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({
-          ...safeUser,
+          ...formattedUser,
           sessionInvalidated: isSignificantChange
         }));
       } catch (err) {
@@ -975,11 +1103,7 @@ else if (req.method === "GET" && req.url === "/projects") {
   dynamoDB.send(params)
     .then((data) => {
       // Format dates for all projects
-      const formattedProjects = (data.Items || []).map(project => ({
-        ...project,
-        projectStartDate: formatDate(project.projectStartDate),
-        projectEndDate: project.projectEndDate ? formatDate(project.projectEndDate) : null
-      }));
+      const formattedProjects = (data.Items || []).map(project => formatProjectData(project));
       
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(formattedProjects));
@@ -1018,11 +1142,7 @@ else if (req.method === "GET" && req.url.match(/^\/projects\/[^\/]+$/)) {
       }
       
       // Format dates for the project
-      const formattedProject = {
-        ...data.Item,
-        projectStartDate: formatDate(data.Item.projectStartDate),
-        projectEndDate: data.Item.projectEndDate ? formatDate(data.Item.projectEndDate) : null
-      };
+      const formattedProject = formatProjectData(data.Item);
       
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(formattedProject));
@@ -1075,36 +1195,34 @@ else if (req.method === "POST" && req.url === "/projects") {
       // Get the userId of the creator from the token
       const userId = tokenStore.get(token).userId;
       
-// Parse date format if needed (DD/MM/YYYY to ISO format)
-let startDate, endDate;
+      // Parse date format (DD/MM/YYYY to ISO format)
+      let startDate, endDate;
 
-try {
-  if (projectData.projectStartDate.includes('/')) {
-    const [day, month, year] = projectData.projectStartDate.split('/');
-    startDate = new Date(year, month - 1, day).toISOString();
-  } else {
-    startDate = new Date(projectData.projectStartDate).toISOString();
-  }
-  
-  if (projectData.projectEndDate && projectData.projectEndDate.includes('/')) {
-    const [day, month, year] = projectData.projectEndDate.split('/');
-    endDate = new Date(year, month - 1, day).toISOString();
-  } else if (projectData.projectEndDate) {
-    endDate = new Date(projectData.projectEndDate).toISOString();
-  } else {
-    endDate = null;
-  }
-} catch (err) {
-  res.writeHead(400, { "Content-Type": "application/json" });
-  return res.end(JSON.stringify({ error: "Invalid date format. Please use DD/MM/YYYY." }));
-}
+      try {
+        startDate = parseDate(projectData.projectStartDate);
+        if (!startDate) {
+          throw new Error("Invalid start date format");
+        }
+        
+        if (projectData.projectEndDate) {
+          endDate = parseDate(projectData.projectEndDate);
+          if (!endDate) {
+            throw new Error("Invalid end date format");
+          }
+        } else {
+          endDate = null;
+        }
+      } catch (err) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Invalid date format. Please use DD/MM/YYYY." }));
+      }
 
-// Create the project object with new fields
-const project = {
-  projectId,
-  projectName: projectData.projectName,
-  projectStartDate: startDate,
-  projectEndDate: endDate,
+      // Create the project object with new fields
+      const project = {
+        projectId,
+        projectName: projectData.projectName,
+        projectStartDate: startDate,
+        projectEndDate: endDate,
         company: projectData.company || "",
         description: projectData.description || "",
         createdBy: userId,
@@ -1126,11 +1244,7 @@ const project = {
       });
 
       // Format dates for response
-      const responseProject = {
-        ...project,
-        projectStartDate: formatDate(project.projectStartDate),
-        projectEndDate: project.projectEndDate ? formatDate(project.projectEndDate) : null
-      };
+      const responseProject = formatProjectData(project);
 
       res.writeHead(201, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ 
@@ -1194,41 +1308,39 @@ else if (req.method === "PUT" && req.url.match(/^\/projects\/[^\/]+$/)) {
       
       const existingProject = existingProjectResult.Item;
       
-// Parse dates if needed
-let startDate = existingProject.projectStartDate;
-let endDate = existingProject.projectEndDate;
+      // Parse dates if needed
+      let startDate = existingProject.projectStartDate;
+      let endDate = existingProject.projectEndDate;
 
-try {
-  if (projectData.projectStartDate) {
-    if (projectData.projectStartDate.includes('/')) {
-      const [day, month, year] = projectData.projectStartDate.split('/');
-      startDate = new Date(year, month - 1, day).toISOString();
-    } else {
-      startDate = new Date(projectData.projectStartDate).toISOString();
-    }
-  }
-  
-  if (projectData.projectEndDate !== undefined) {
-    if (projectData.projectEndDate && projectData.projectEndDate.includes('/')) {
-      const [day, month, year] = projectData.projectEndDate.split('/');
-      endDate = new Date(year, month - 1, day).toISOString();
-    } else if (projectData.projectEndDate) {
-      endDate = new Date(projectData.projectEndDate).toISOString();
-    } else {
-      endDate = null;
-    }
-  }
-} catch (err) {
-  res.writeHead(400, { "Content-Type": "application/json" });
-  return res.end(JSON.stringify({ error: "Invalid date format. Please use DD/MM/YYYY." }));
-}
+      try {
+        if (projectData.projectStartDate) {
+          startDate = parseDate(projectData.projectStartDate);
+          if (!startDate) {
+            throw new Error("Invalid start date format");
+          }
+        }
+        
+        if (projectData.projectEndDate !== undefined) {
+          if (projectData.projectEndDate) {
+            endDate = parseDate(projectData.projectEndDate);
+            if (!endDate) {
+              throw new Error("Invalid end date format");
+            }
+          } else {
+            endDate = null;
+          }
+        }
+      } catch (err) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Invalid date format. Please use DD/MM/YYYY." }));
+      }
 
-// Update the project object
-const updatedProject = {
-  ...existingProject,
-  projectName: projectData.projectName || existingProject.projectName,
-  projectStartDate: startDate,
-  projectEndDate: endDate,
+      // Update the project object
+      const updatedProject = {
+        ...existingProject,
+        projectName: projectData.projectName || existingProject.projectName,
+        projectStartDate: startDate,
+        projectEndDate: endDate,
         company: projectData.company !== undefined ? projectData.company : (existingProject.company || ""),
         description: projectData.description !== undefined ? projectData.description : (existingProject.description || ""),
         updatedAt: new Date().toISOString()
@@ -1242,11 +1354,7 @@ const updatedProject = {
       await dynamoDB.send(updateParams);
       
       // Format dates for response
-      const responseProject = {
-        ...updatedProject,
-        projectStartDate: formatDate(updatedProject.projectStartDate),
-        projectEndDate: updatedProject.projectEndDate ? formatDate(updatedProject.projectEndDate) : null
-      };
+      const responseProject = formatProjectData(updatedProject);
       
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(responseProject));
@@ -1366,11 +1474,7 @@ else if (req.method === "GET" && req.url.match(/^\/users\/[^\/]+\/projects$/)) {
         .map(result => result.Item);
       
       // Format dates for all projects
-      const formattedProjects = projects.map(project => ({
-        ...project,
-        projectStartDate: formatDate(project.projectStartDate),
-        projectEndDate: project.projectEndDate ? formatDate(project.projectEndDate) : null
-      }));
+      const formattedProjects = projects.map(project => formatProjectData(project));
       
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(formattedProjects));
@@ -1575,8 +1679,11 @@ else if (req.method === "GET" && req.url === "/excel-templates") {
 
   dynamoDB.send(params)
     .then((data) => {
+      // Format dates for all templates
+      const formattedTemplates = (data.Items || []).map(template => formatTemplateData(template));
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(data.Items || []));
+      res.end(JSON.stringify(formattedTemplates));
     })
     .catch((err) => {
       console.error("Error fetching Excel templates:", err);
@@ -1702,11 +1809,14 @@ else if (req.method === "POST" && req.url === "/excel-templates") {
       // Remove temporary file
       fs.unlinkSync(filePath);
       
-      // Return success response
+      // Format the response data
+      const formattedTemplate = formatTemplateData(templateData);
+      
+      // Return success response with formatted dates
       res.writeHead(201, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
         message: "Template uploaded successfully",
-        templateId: templateData.templateId
+        template: formattedTemplate
       }));
     } catch (err) {
       console.error("Error uploading template:", err);
@@ -1826,10 +1936,14 @@ else if (req.method === "PUT" && req.url.match(/^\/excel-templates\/[^\/]+\/togg
       
       await dynamoDB.send(updateParams);
       
+      // Format the response data
+      const formattedTemplate = formatTemplateData(updatedTemplate);
+      
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ 
         message: `Template ${statusData.isActive ? 'activated' : 'deactivated'} successfully`,
-        isActive: statusData.isActive
+        isActive: statusData.isActive,
+        template: formattedTemplate
       }));
     } catch (err) {
       console.error("Error toggling template status:", err);
@@ -1909,8 +2023,11 @@ else if (req.method === "GET" && req.url === "/companies") {
 
   dynamoDB.send(params)
     .then((data) => {
+      // Format dates for all companies
+      const formattedCompanies = (data.Items || []).map(company => formatCompanyData(company));
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(data.Items || []));
+      res.end(JSON.stringify(formattedCompanies));
     })
     .catch((err) => {
       console.error("Error fetching companies:", err);
@@ -1945,8 +2062,11 @@ else if (req.method === "GET" && req.url.match(/^\/companies\/[^\/]+$/)) {
         return res.end(JSON.stringify({ error: "Company not found" }));
       }
       
+      // Format dates for the company
+      const formattedCompany = formatCompanyData(data.Item);
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(data.Item));
+      res.end(JSON.stringify(formattedCompany));
     })
     .catch((err) => {
       console.error("Error fetching company:", err);
@@ -2008,10 +2128,13 @@ else if (req.method === "POST" && req.url === "/companies") {
         companyId: companyId
       });
 
+      // Format dates for response
+      const formattedCompany = formatCompanyData(company);
+
       res.writeHead(201, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ 
         message: "Company created successfully",
-        company: company
+        company: formattedCompany
       }));
     } catch (err) {
       console.error("Error creating company:", err);
@@ -2075,8 +2198,11 @@ else if (req.method === "PUT" && req.url.match(/^\/companies\/[^\/]+$/)) {
       
       await dynamoDB.send(updateParams);
       
+      // Format dates for response
+      const formattedCompany = formatCompanyData(updatedCompany);
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(updatedCompany));
+      res.end(JSON.stringify(formattedCompany));
     } catch (err) {
       console.error("Error updating company:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
@@ -2154,8 +2280,11 @@ else if (req.method === "GET" && req.url === "/routes") {
 
   dynamoDB.send(params)
     .then((data) => {
+      // Format dates for all routes
+      const formattedRoutes = (data.Items || []).map(route => formatRouteData(route));
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(data.Items || []));
+      res.end(JSON.stringify(formattedRoutes));
     })
     .catch((err) => {
       console.error("Error fetching routes:", err);
@@ -2190,8 +2319,11 @@ else if (req.method === "GET" && req.url.match(/^\/routes\/[^\/]+$/)) {
         return res.end(JSON.stringify({ error: "Route not found" }));
       }
       
+      // Format dates for the route
+      const formattedRoute = formatRouteData(data.Item);
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(data.Item));
+      res.end(JSON.stringify(formattedRoute));
     })
     .catch((err) => {
       console.error("Error fetching route:", err);
@@ -2254,10 +2386,13 @@ else if (req.method === "POST" && req.url === "/routes") {
         routeId: routeId
       });
 
+      // Format dates for response
+      const formattedRoute = formatRouteData(route);
+
       res.writeHead(201, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ 
         message: "Route created successfully",
-        route: route
+        route: formattedRoute
       }));
     } catch (err) {
       console.error("Error creating route:", err);
@@ -2327,8 +2462,11 @@ else if (req.method === "PUT" && req.url.match(/^\/routes\/[^\/]+$/)) {
         destination: updatedRoute.destination
       });
       
+      // Format dates for response
+      const formattedRoute = formatRouteData(updatedRoute);
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(updatedRoute));
+      res.end(JSON.stringify(formattedRoute));
     } catch (err) {
       console.error("Error updating route:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
@@ -2396,8 +2534,6 @@ else if (req.method === "DELETE" && req.url.match(/^\/routes\/[^\/]+$/)) {
   })();
 }
 
-// Add these endpoints to server.js after your other user-related endpoints
-
 // Get user signature
 else if (req.method === "GET" && req.url.match(/^\/users\/[^\/]+\/signature$/)) {
   // Extract userId from URL
@@ -2426,9 +2562,13 @@ else if (req.method === "GET" && req.url.match(/^\/users\/[^\/]+\/signature$/)) 
       
       // Check if the user has a signature
       const signatureUrl = data.Item.signatureUrl || null;
+      const signatureUpdatedAt = data.Item.signatureUpdatedAt ? formatDateTime(data.Item.signatureUpdatedAt) : null;
       
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ signatureUrl }));
+      res.end(JSON.stringify({ 
+        signatureUrl,
+        signatureUpdatedAt 
+      }));
     })
     .catch((err) => {
       console.error("Error fetching user signature:", err);
@@ -2555,12 +2695,13 @@ else if (req.method === "POST" && req.url.match(/^\/users\/[^\/]+\/signature$/))
       // Create a URL-like structure for the signature
       // In a real application, this would be the S3 URL
       const signatureUrl = `data:${mimeType};base64,${fileBase64}`;
+      const signatureUpdatedAt = new Date().toISOString();
       
       // Update the user record with the signature URL
       const updatedUser = {
         ...user,
         signatureUrl,
-        signatureUpdatedAt: new Date().toISOString()
+        signatureUpdatedAt
       };
       
       // Save the updated user data
@@ -2577,13 +2718,14 @@ else if (req.method === "POST" && req.url.match(/^\/users\/[^\/]+\/signature$/))
       // Log the signature update activity
       await logActivity(userId, 'signature_updated', {
         userId,
-        timestamp: updatedUser.signatureUpdatedAt
+        timestamp: formatDateTime(signatureUpdatedAt)
       });
       
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ 
         message: "Signature uploaded successfully",
-        signatureUrl
+        signatureUrl,
+        signatureUpdatedAt: formatDateTime(signatureUpdatedAt)
       }));
       
     } catch (err) {

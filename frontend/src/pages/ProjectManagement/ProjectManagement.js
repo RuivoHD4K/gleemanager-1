@@ -626,6 +626,7 @@ const ProjectManagement = () => {
                 
                 <div className="project-details">
                   <div className="project-id">Project ID: {selectedProject.projectId}</div>
+                  <div className="project-created">Created: {selectedProject.createdAt}</div>
                 </div>
                 
                 <div className="form-actions">

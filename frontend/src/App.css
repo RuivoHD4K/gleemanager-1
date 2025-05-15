@@ -1,4 +1,4 @@
-/* App.css */
+/* ===== CSS VARIABLES ===== */
 :root {
   --primary-color: #f85444;
   --primary-dark: #ca4437;
@@ -17,6 +17,7 @@
   --header-height: 64px;
 }
 
+/* ===== GLOBAL STYLES ===== */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -35,24 +36,23 @@ body {
   position: relative;
 }
 
-/* Loading & Error */
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  font-style: italic;
-  color: #666;
-  background-color: var(--gray-bg);
-}
-
+/* ===== LOADING & ERROR STATES ===== */
+.loading,
 .loading-indicator {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100px;
   font-style: italic;
   color: #666;
+}
+
+.loading {
+  height: 100vh;
+  background-color: var(--gray-bg);
+}
+
+.loading-indicator {
+  height: 100px;
 }
 
 .error-message {
@@ -63,7 +63,7 @@ body {
   margin: 1rem 0;
 }
 
-/* Role indicator */
+/* ===== ROLE INDICATOR ===== */
 .role-indicator {
   position: fixed;
   bottom: 10px;
@@ -84,13 +84,19 @@ body {
   background-color: var(--secondary-color);
 }
 
-/* Dashboard cards */
+/* ===== DASHBOARD COMPONENTS ===== */
 .dashboard-card {
   background-color: white;
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: var(--card-shadow);
   margin-bottom: 1.5rem;
+}
+
+.dashboard-card h3 {
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+  font-size: 1.2rem;
 }
 
 .dashboard-grid {
@@ -100,21 +106,108 @@ body {
   margin-bottom: 2rem;
 }
 
-/* Activity List */
+.dashboard-flex-container {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* ===== PAGE HEADER ===== */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  color: var(--primary-dark);
+  font-size: 2rem;
+}
+
+.page-actions {
+  display: flex;
+  gap: 0.8rem;
+}
+
+/* ===== ACTIVITY COMPONENTS ===== */
 .activity-list {
   list-style: none;
+  height: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  margin: 0;
 }
 
-.activity-list li {
-  padding: 0.6rem 0;
+.activity-item {
+  padding: 0.7rem 0;
   border-bottom: 1px solid var(--light-gray);
+  transition: background-color 0.6s ease;
 }
 
-.activity-list li:last-child {
+.activity-item:hover {
+  background-color: rgba(248, 84, 68, 0.05);
+}
+
+.activity-item:last-child {
   border-bottom: none;
 }
 
-/* Users List */
+.activity-text {
+  line-height: 1.4;
+  display: block;
+}
+
+.activity-card {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  height: 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.activity-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  color: var(--primary-color);
+}
+
+.activity-list-container {
+  flex: 1;
+  overflow: hidden;
+}
+
+.activity-loading-indicator {
+  display: flex;
+  align-items: center;
+}
+
+.activity-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(248, 84, 68, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 0.8s linear infinite;
+}
+
+.no-activity {
+  padding: 2rem 0;
+  text-align: center;
+  color: #888;
+  font-style: italic;
+}
+
+/* ===== USERS TABLE ===== */
 .users-table-container {
   overflow-x: auto;
 }
@@ -150,19 +243,25 @@ body {
   text-transform: capitalize;
 }
 
-/* Welcome Card */
-.welcome-card ul {
-  margin-top: 1rem;
-  margin-left: 1rem;
+/* ===== STATUS INDICATORS ===== */
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
 }
 
-.dashboard-card h3 {
-  margin-bottom: 1rem;
-  color: var(--primary-color);
-  font-size: 1.2rem;
+.status-indicator.online {
+  background-color: var(--success-color);
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
 }
 
-/* Stats Card */
+.status-indicator.offline {
+  background-color: #aaa;
+}
+
+/* ===== STATS CARD ===== */
 .stats-content {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
@@ -187,246 +286,7 @@ body {
   color: var(--primary-dark);
 }
 
-/* General utility classes */
-.action-btn {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: var(--transition);
-  font-weight: 600;
-}
-
-.action-btn:hover {
-  background-color: var(--primary-dark);
-}
-
-.toast-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 11000; /* Increased from 9999 to be higher than modal-backdrop */
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 350px;
-}
-
-.toast-notification {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: white;
-  color: var(--text-color);
-  padding: 12px 16px;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  animation: toast-slide-in 0.3s ease forwards;
-  overflow: hidden;
-  position: relative;
-}
-
-.toast-notification::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-}
-
-.toast-notification.success {
-  background-color: white;
-  color: var(--text-color);
-}
-
-.toast-notification.success::before {
-  background-color: var(--success-color);
-}
-
-.toast-notification.error {
-  background-color: white;
-  color: var(--text-color);
-}
-
-.toast-notification.error::before {
-  background-color: var(--danger-color);
-}
-
-.toast-notification.info {
-  background-color: white;
-  color: var(--text-color);
-}
-
-.toast-notification.info::before {
-  background-color: #0077cc;
-}
-
-.toast-notification.warning {
-  background-color: white;
-  color: var(--text-color);
-}
-
-.toast-notification.warning::before {
-  background-color: #ffc107;
-}
-
-.toast-content {
-  flex: 1;
-  margin-right: 10px;
-}
-
-.toast-message {
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.toast-close {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s;
-}
-
-.toast-close:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-@keyframes toast-slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* Keep the old notification styles for backward compatibility but modify them slightly */
-.notification {
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-  text-align: center;
-  display: none; /* Hide old notifications */
-}
-
-.notification.success {
-  background-color: rgba(40, 167, 69, 0.1);
-  color: var(--success-color);
-}
-
-.notification.error {
-  background-color: rgba(220, 53, 69, 0.1);
-  color: var(--danger-color);
-}
-
-.notification.info {
-  background-color: rgba(0, 123, 255, 0.1);
-  color: #0077cc;
-}
-
-/* Page header styling */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.page-header h1 {
-  color: var(--primary-dark);
-  font-size: 2rem;
-}
-
-.page-actions {
-  display: flex;
-  gap: 0.8rem;
-}
-
-/* Status indicators in UsersList */
-.status-indicator {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 8px;
-}
-
-.status-indicator.online {
-  background-color: var(--success-color);
-  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
-}
-
-.status-indicator.offline {
-  background-color: #aaa;
-}
-
-.password-requirements{
-  font-size: 0.6rem;
-  color: #666;
-  margin: 0;
-}
-
-.password-requirements-title{
-  font-size: 0.8rem;
-  color: #666;
-  margin: 0;
-}
-
-/* Activity Card Styling */
-.activity-card {
-  position: relative;
-  overflow: hidden;
-}
-
-.activity-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.activity-loading-indicator {
-  display: flex;
-  align-items: center;
-}
-
-.activity-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(var(--primary-color-rgb, 248, 84, 68), 0.3);
-  border-radius: 50%;
-  border-top-color: var(--primary-color, #f85444);
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Dashboard flex container for aligning app drawer and activity card */
-.dashboard-flex-container {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-/* App drawer container to manage layout */
+/* ===== APP DRAWER ===== */
 .app-drawer-container {
   flex: 1;
   position: relative;
@@ -439,11 +299,10 @@ body {
   gap: 1rem;
   margin-bottom: 0;
   padding: 0;
-  height: 320px; /* Fixed height for alignment with activity card */
+  height: 320px;
   position: relative;
 }
 
-/* Pagination buttons for app drawer */
 .drawer-pagination-btn {
   position: absolute;
   top: 50%;
@@ -476,7 +335,6 @@ body {
   right: -20px;
 }
 
-/* Drawer item styling */
 .drawer-item {
   height: auto;
   display: flex;
@@ -514,118 +372,7 @@ body {
   color: var(--text-color);
 }
 
-/* Activity card updates to match app drawer height */
-.activity-card {
-  flex: 1;
-  height: 320px; /* Same fixed height as app drawer */
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.activity-title {
-  font-size: 1.1rem; /* Smaller activity header */
-  margin-bottom: 0.5rem;
-  color: var(--primary-color);
-}
-
-.activity-list-container {
-  flex: 1;
-  overflow: hidden;
-}
-
-/* Updated activity list for proper scrolling */
-.activity-list {
-  height: 100%;
-  max-height: 240px; /* Leave space for the header */
-  overflow-y: auto;
-  padding-right: 0.5rem;
-  margin: 0;
-}
-
-.activity-item {
-  padding: 0.7rem 0;
-  border-bottom: 1px solid var(--light-gray);
-  transition: background-color 0.6s ease;
-}
-
-.activity-item:hover {
-  background-color: rgba(var(--primary-color-rgb, 248, 84, 68), 0.05);
-}
-
-.activity-item:last-child {
-  border-bottom: none;
-}
-
-.activity-text {
-  line-height: 1.4;
-  display: block;
-}
-
-.no-activity {
-  padding: 2rem 0;
-  text-align: center;
-  color: #888;
-  font-style: italic;
-}
-
-/* Responsive adjustments */
-@media (max-width: 1200px) {
-  .dashboard-flex-container {
-    flex-direction: column;
-  }
-  
-  .app-drawer {
-    height: auto;
-    min-height: 320px;
-  }
-  
-  .activity-card {
-    height: 280px;
-  }
-}
-
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .stats-content {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .app-drawer {
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(6, auto);
-    gap: 0.75rem;
-  }
-  
-  .drawer-pagination-btn {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .prev-btn {
-    left: 10px;
-  }
-  
-  .next-btn {
-    right: 10px;
-  }
-  
-  .drawer-icon {
-    width: 50px;
-    height: 50px;
-  }
-}
-
-/* Signature Card Styling */
+/* ===== SIGNATURE COMPONENTS ===== */
 .signature-card {
   display: flex;
   flex-direction: column;
@@ -678,17 +425,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px !important; 
+  width: 32px !important;
   height: 32px !important;
-  min-width: 32px !important; 
-  border-radius: 50% !important; 
+  min-width: 32px !important;
+  border-radius: 50% !important;
   background-color: white;
   color: var(--text-color);
   border: none;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: var(--transition);
-  padding: 0 !important; 
+  padding: 0 !important;
 }
 
 .signature-action-btn.edit-btn:hover {
@@ -747,13 +494,111 @@ body {
 .signature-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(var(--primary-color-rgb, 248, 84, 68), 0.3);
+  border: 3px solid rgba(248, 84, 68, 0.3);
   border-radius: 50%;
-  border-top-color: var(--primary-color, #f85444);
+  border-top-color: var(--primary-color);
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
 }
 
+/* ===== BUTTONS & ACTIONS ===== */
+.action-btn {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-weight: 600;
+}
+
+.action-btn:hover {
+  background-color: var(--primary-dark);
+}
+
+/* ===== TOAST NOTIFICATIONS ===== */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 11000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 350px;
+}
+
+.toast-notification {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: white;
+  color: var(--text-color);
+  padding: 12px 16px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: toast-slide-in 0.3s ease forwards;
+  overflow: hidden;
+  position: relative;
+}
+
+.toast-notification::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.toast-notification.success::before {
+  background-color: var(--success-color);
+}
+
+.toast-notification.error::before {
+  background-color: var(--danger-color);
+}
+
+.toast-notification.info::before {
+  background-color: #0077cc;
+}
+
+.toast-notification.warning::before {
+  background-color: #ffc107;
+}
+
+.toast-content {
+  flex: 1;
+  margin-right: 10px;
+}
+
+.toast-message {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.toast-close:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ===== PROGRESS & UPLOAD ===== */
 .upload-progress-container {
   width: 200px;
   height: 10px;
@@ -780,8 +625,94 @@ body {
   color: #666;
 }
 
+/* ===== MISC UTILITIES ===== */
+.welcome-card ul {
+  margin-top: 1rem;
+  margin-left: 1rem;
+}
+
+.password-requirements {
+  font-size: 0.6rem;
+  color: #666;
+  margin: 0;
+}
+
+.password-requirements-title {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0;
+}
+
+/* ===== ANIMATIONS ===== */
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1200px) {
+  .dashboard-flex-container {
+    flex-direction: column;
+  }
+  
+  .app-drawer {
+    height: auto;
+    min-height: 320px;
+  }
+  
+  .activity-card {
+    height: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-content {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .app-drawer {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(6, auto);
+    gap: 0.75rem;
+  }
+  
+  .drawer-pagination-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .prev-btn {
+    left: 10px;
+  }
+  
+  .next-btn {
+    right: 10px;
+  }
+  
+  .drawer-icon {
+    width: 50px;
+    height: 50px;
   }
 }

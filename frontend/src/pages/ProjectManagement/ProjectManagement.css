@@ -132,10 +132,14 @@
   margin-top: 1rem;
 }
 
+/* Project details section */
 .project-details {
   background-color: var(--gray-bg);
   padding: 0.8rem;
   border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 0.9rem;
   margin-top: 0.5rem;
 }
@@ -143,6 +147,11 @@
 .project-id {
   font-family: monospace;
   color: #666;
+}
+
+.project-created {
+  color: #666;
+  font-size: 0.85rem;
 }
 
 /* Form action buttons layout */
@@ -297,5 +306,11 @@ textarea:focus {
   
   .delete-btn {
     margin-top: 0.5rem;
+  }
+
+  .project-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 }
