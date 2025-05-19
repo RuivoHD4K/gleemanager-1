@@ -1,10 +1,10 @@
-/* ExcelTemplates.css */
+/* ExcelTemplates specific styles */
 .excel-templates-container {
   width: 100%;
 }
 
 .no-templates-message {
-  padding: 2rem;
+  padding: var(--spacing-xl);
   text-align: center;
   color: #666;
   font-style: italic;
@@ -13,21 +13,25 @@
 .templates-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .template-card {
   background-color: white;
-  border-radius: 8px;
-  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
   box-shadow: var(--card-shadow);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Fixed height and flex layout */
+  height: 310px;
+  display: flex;
+  flex-direction: column;
 }
 
 .template-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--hover-shadow);
 }
 
 .template-card.inactive {
@@ -39,55 +43,58 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-md);
+  /* Ensures header doesn't grow */
+  flex-shrink: 0;
 }
 
 .template-header h3 {
   margin: 0;
   color: var(--primary-color);
-  font-size: 1.2rem;
+  font-size: var(--font-lg);
   flex: 1;
+  /* Single line with ellipsis */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: var(--spacing-sm);
 }
 
 .template-status {
-  margin-left: 1rem;
-}
-
-.status-badge {
-  font-size: 0.8rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: 12px;
-  font-weight: 500;
-}
-
-.status-badge.active {
-  background-color: rgba(40, 167, 69, 0.1);
-  color: var(--success-color);
-}
-
-.status-badge.inactive {
-  background-color: rgba(108, 117, 125, 0.1);
-  color: #6c757d;
+  margin-left: var(--spacing-md);
+  flex-shrink: 0;
 }
 
 .template-description {
   font-size: 0.9rem;
   color: #666;
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-md);
   word-wrap: break-word;
+  /* 3 lines with ellipsis */
+  line-height: 1.4;
+  max-height: calc(1.4em * 3);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  /* Allows content to grow */
+  flex-grow: 0;
+  flex-shrink: 0;
 }
 
 .template-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  /* Ensures meta doesn't grow */
+  flex-shrink: 0;
 }
 
 .meta-item {
   display: flex;
   flex-direction: column;
-  font-size: 0.8rem;
+  font-size: var(--font-sm);
 }
 
 .meta-label {
@@ -102,12 +109,15 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.8rem;
+  /* Push actions to bottom */
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .template-action-btn {
-  padding: 0.5rem;
+  padding: var(--spacing-sm);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -150,33 +160,24 @@
   background-color: #5a6268;
 }
 
-.delete-btn {
-  background-color: var(--danger-color);
-  color: white;
-}
-
-.delete-btn:hover {
-  background-color: #c82333;
-}
-
-/* Form Styles */
+/* Form specific styles */
 .template-form {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: var(--spacing-lg);
 }
 
 .file-upload input[type="file"] {
-  padding: 0.5rem;
+  padding: var(--spacing-sm);
   background-color: var(--gray-bg);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   width: 100%;
 }
 
 .file-help {
-  font-size: 0.8rem;
+  font-size: var(--font-sm);
   color: #666;
-  margin-top: 0.3rem;
+  margin-top: var(--spacing-xs);
 }
 
 .checkbox-group {
@@ -195,46 +196,26 @@
   flex: 1;
 }
 
-/* Upload Progress Bar */
-.upload-progress {
-  width: 100%;
-  height: 20px;
-  background-color: var(--light-gray);
-  border-radius: 10px;
-  overflow: hidden;
-  margin: 1rem 0;
-}
-
-.progress-bar {
-  height: 100%;
-  background-color: var(--primary-color);
-  text-align: center;
-  color: white;
-  font-size: 0.8rem;
-  line-height: 20px;
-  transition: width 0.3s ease;
-}
-
-/* Template Details */
+/* Template details */
 .template-details {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--spacing-lg);
 }
 
 .detail-item {
   display: flex;
   flex-direction: column;
-  padding: 0.5rem;
+  padding: var(--spacing-sm);
   background-color: var(--gray-bg);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .detail-label {
-  font-size: 0.8rem;
+  font-size: var(--font-sm);
   color: #666;
-  margin-bottom: 0.3rem;
+  margin-bottom: var(--spacing-xs);
 }
 
 .detail-value {
@@ -260,5 +241,11 @@
   
   .template-actions {
     grid-template-columns: 1fr;
+  }
+  
+  /* Adjust card height for mobile */
+  .template-card {
+    height: auto;
+    min-height: 300px;
   }
 }

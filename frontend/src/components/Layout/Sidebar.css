@@ -1,10 +1,10 @@
-/* CSS Variables at the root */
+/* Sidebar Variables */
 :root {
   --sidebar-transition: 0.3s ease;
   --text-fade-duration: 0.2s;
-  --submenu-indicator-color: #e6e6e6; /* Light gray color for submenu indicator */
-  --submenu-collapse-duration: 0.6s;  /* Duration for submenu collapse animation */
-  --submenu-expand-duration: 0.5s;    /* Duration for submenu expand animation */
+  --submenu-indicator-color: #e6e6e6;
+  --submenu-collapse-duration: 0.6s;
+  --submenu-expand-duration: 0.5s;
 }
 
 .sidebar {
@@ -15,7 +15,7 @@
   position: fixed;
   top: var(--header-height);
   left: 0;
-  z-index: 100;
+  z-index: var(--z-sidebar);
   transition: width var(--sidebar-transition);
   display: flex;
   flex-direction: column;
@@ -28,7 +28,7 @@
 }
 
 .sidebar-nav {
-  padding: 1.5rem 0;
+  padding: var(--spacing-lg) 0;
   overflow-y: auto;
 }
 
@@ -42,7 +42,7 @@
   border-left: 3px solid transparent;
   white-space: nowrap;
   overflow: hidden;
-  height: 40px; /* Fixed height for consistency */
+  height: 40px;
 }
 
 .nav-link:hover {
@@ -59,7 +59,6 @@
   stroke: var(--primary-color);
 }
 
-/* Submenu expanded indicator */
 .nav-link.submenu-expanded::after {
   content: '';
   position: absolute;
@@ -71,10 +70,9 @@
   opacity: 1;
 }
 
-/* Fixed icon container for stable positioning */
 .nav-icon {
   height: 100%;
-  width: 53px; /* Changed to 53px as requested */
+  width: 53px;
   flex-shrink: 0;
   transition: color 0.2s ease;
   position: relative;
@@ -90,13 +88,13 @@
 
 .nav-text {
   flex: 1;
-  padding-right: 1.5rem;
+  padding-right: var(--spacing-lg);
   transition: opacity var(--text-fade-duration) ease;
   opacity: 1;
   max-width: calc(var(--sidebar-width) - var(--sidebar-collapsed-width));
 }
 
-/* Submenu specific styles */
+/* Submenu styles */
 .dashboard-submenu {
   display: flex;
   flex-direction: column;
@@ -112,7 +110,7 @@
 }
 
 .dashboard-submenu.open {
-  max-height: 500px; /* Increased to accommodate more items */
+  max-height: 500px;
   opacity: 1;
   transform: translateY(0);
   animation: submenuExpand 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -131,7 +129,6 @@
   }
 }
 
-/* Apply additional fade-out effect when sidebar is collapsed */
 .sidebar.collapsed .dashboard-submenu {
   opacity: 0;
   max-height: 0;
@@ -161,7 +158,6 @@
   position: relative;
 }
 
-/* Green active indicator */
 .dashboard-submenu .nav-link::before {
   content: '';
   position: absolute;
@@ -178,7 +174,7 @@
   opacity: 1;
 }
 
-/* Properly handle text transitions for both directions */
+/* Text transitions */
 .sidebar .nav-text {
   opacity: 1;
   visibility: visible;
@@ -192,16 +188,16 @@
 }
 
 .sidebar-footer {
-  padding: 1rem;
+  padding: var(--spacing-md);
   border-top: 1px solid var(--light-gray);
   text-align: center;
   color: #666;
-  font-size: 0.8rem;
+  font-size: var(--font-sm);
   transition: padding var(--sidebar-transition);
 }
 
 .sidebar.collapsed .sidebar-footer {
-  padding: 0.5rem;
+  padding: var(--spacing-sm);
 }
 
 .app-version {

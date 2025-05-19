@@ -286,10 +286,10 @@ const ExcelTemplates = () => {
     setShowViewTemplateModal(true);
   };
 
+  // Fixed formatDate function - just return the date string as-is since it's already formatted by the server
   const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    if (!dateString || dateString === "Invalid Date" || dateString === "null") return "N/A";
+    return dateString;
   };
 
   return (

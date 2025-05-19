@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UsersList from '../../components/UsersList/UsersList';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
+import HolidayApprovalPanel from '../../components/HolidayApproval/HolidayApproval';
 import { Users, FolderKanban, FileSpreadsheet, Building2, ChevronLeft, ChevronRight, Settings, HelpCircle, Route} from 'lucide-react';
 
 const AdminDashboard = () => {  
@@ -232,8 +233,18 @@ const AdminDashboard = () => {
           </div>
         </div>
         
-        {/* Only show online users in the dashboard */}
-        <UsersList onlyShowOnline={true} />
+        {/* New row for Holiday Approval and Online Users */}
+        <div className="dashboard-grid">
+          {/* Holiday Approval Panel - takes up two columns */}
+          <div className="dashboard-card grid-span-2">
+            <HolidayApprovalPanel />
+          </div>
+          
+          {/* Only show online users in the third column */}
+          <div className="dashboard-card">
+            <UsersList onlyShowOnline={true} />
+          </div>
+        </div>
       </div>  
     </LoadingSpinner>
   );

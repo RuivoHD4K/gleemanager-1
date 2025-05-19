@@ -1,4 +1,4 @@
-/* CompanyManagement.css */
+/* CompanyManagement specific styles */
 .company-management-container {
   width: 100%;
 }
@@ -6,11 +6,11 @@
 .company-management-grid {
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
-/* Companies list styles */
+/* Companies list specific */
 .companies-list-card {
   min-height: 500px;
   display: flex;
@@ -30,7 +30,7 @@
 }
 
 .companies-select-list li {
-  padding: 0.8rem 1rem;
+  padding: 0.8rem var(--spacing-md);
   border-bottom: 1px solid var(--light-gray);
   cursor: pointer;
   transition: var(--transition);
@@ -60,57 +60,9 @@
 }
 
 .company-nif {
-  font-size: 0.8rem;
+  font-size: var(--font-sm);
   color: #666;
-  margin-top: 0.3rem;
-}
-
-/* Search container and input styling */
-.search-container {
-  margin-bottom: 1rem;
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background-color: white;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--light-gray);
-}
-
-.search-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.8rem;
-  padding-left: 2.5rem;
-  border: 1px solid var(--light-gray);
-  border-radius: 4px;
-  font-size: 1rem;
-  background-color: var(--gray-bg);
-  transition: var(--transition);
-}
-
-.search-input:focus {
-  outline: none;
-  background-color: #fff;
-  border-color: var(--primary-light);
-  box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.1);
-}
-
-.search-icon {
-  position: absolute;
-  left: 0.8rem;
-  color: #666;
-}
-
-.no-results {
-  padding: 1rem;
-  color: #666;
-  font-style: italic;
-  text-align: center;
+  margin-top: var(--spacing-xs);
 }
 
 /* Company edit form */
@@ -121,20 +73,20 @@
 .company-edit-form {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
-  margin-top: 1rem;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-md);
 }
 
 /* Company details section */
 .company-details {
   background-color: var(--gray-bg);
   padding: 0.8rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 0.9rem;
-  margin-top: 0.5rem;
+  margin-top: var(--spacing-sm);
 }
 
 .company-id {
@@ -145,52 +97,6 @@
 .company-created {
   color: #666;
   font-size: 0.85rem;
-}
-
-/* Form action buttons layout */
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-  justify-content: space-between;
-}
-
-/* Left-aligned buttons group */
-.action-buttons-left {
-  display: flex;
-  gap: 1rem;
-}
-
-/* Character counter styling */
-.char-counter {
-  text-align: right;
-  font-size: 0.75rem;
-  color: #666;
-  margin-top: 0.3rem;
-}
-
-.char-counter .warning {
-  color: var(--warning-color);
-  font-weight: 500;
-}
-
-/* Textarea styling */
-textarea {
-  resize: vertical;
-  min-height: 100px;
-  font-family: inherit;
-  padding: 0.8rem;
-  border: 1px solid var(--light-gray);
-  border-radius: 4px;
-  transition: border-color 0.2s ease;
-  width: 100%;
-  box-sizing: border-box;
-} 
-
-textarea:focus {
-  border-color: var(--primary-color);
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.2);
 }
 
 /* Responsive adjustments */
@@ -206,18 +112,10 @@ textarea:focus {
   .companies-list-container {
     max-height: 250px;
   }
-  
-  .form-actions {
-    flex-direction: column;
-  }
-  
-  .delete-btn {
-    margin-top: 0.5rem;
-  }
 
   .company-details {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
   }
 }
