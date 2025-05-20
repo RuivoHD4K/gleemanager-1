@@ -1,0 +1,248 @@
+/* AdminDashboard.css - Complete rewrite */
+
+/* Main admin dashboard container */
+.admin-dashboard {
+  padding: var(--spacing-md);
+  width: 100%;
+}
+
+/* Six-column grid layout specifically for admin dashboard */
+.admin-dashboard .six-column-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Grid span classes with admin-dashboard prefix for specificity */
+.admin-dashboard .grid-span-1 {
+  grid-column: span 1;
+}
+
+.admin-dashboard .grid-span-2 {
+  grid-column: span 2;
+}
+
+.admin-dashboard .grid-span-3 {
+  grid-column: span 3;
+}
+
+.admin-dashboard .grid-span-4 {
+  grid-column: span 4;
+}
+
+.admin-dashboard .grid-span-6 {
+  grid-column: span 6;
+}
+
+/* Admin dashboard card styles */
+.admin-dashboard .dashboard-card {
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.admin-dashboard .dashboard-card h3 {
+  margin-top: 0;
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-lg);
+  color: var(--text-color);
+  border-bottom: 1px solid var(--light-gray);
+  padding-bottom: var(--spacing-sm);
+}
+
+/* Admin app drawer styles */
+.admin-dashboard .app-drawer-container {
+  position: relative;
+  background-color: white;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: var(--spacing-md);
+  min-height: 300px;
+  margin-bottom: var(--spacing-md);
+}
+
+.admin-dashboard .app-drawer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  justify-content: center;
+}
+
+.admin-dashboard .drawer-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: center;
+}
+
+.admin-dashboard .drawer-item:hover {
+  background-color: var(--gray-bg);
+}
+
+.admin-dashboard .drawer-icon {
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-xs);
+}
+
+.admin-dashboard .drawer-label {
+  font-size: var(--font-xs);
+  font-weight: 500;
+}
+
+.admin-dashboard .drawer-pagination-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  background-color: white;
+  border: 1px solid var(--light-gray);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
+  z-index: 2;
+}
+
+.admin-dashboard .prev-btn {
+  left: -15px;
+}
+
+.admin-dashboard .next-btn {
+  right: -15px;
+}
+
+/* Admin activity card */
+.admin-dashboard .activity-card {
+  min-height: 300px;
+}
+
+.admin-dashboard .activity-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.admin-dashboard .activity-title {
+  margin: 0;
+  font-size: var(--font-lg);
+}
+
+.admin-dashboard .activity-loading-indicator {
+  display: flex;
+  align-items: center;
+}
+
+.admin-dashboard .activity-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.admin-dashboard .activity-list-container {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.admin-dashboard .activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.admin-dashboard .activity-item {
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.admin-dashboard .activity-item:last-child {
+  border-bottom: none;
+}
+
+.admin-dashboard .activity-text {
+  font-size: var(--font-sm);
+}
+
+.admin-dashboard .no-activity {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  padding: var(--spacing-lg) 0;
+}
+
+/* Admin holiday approval card */
+.admin-dashboard .holiday-approval-card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Responsive adjustments - with admin-dashboard prefix */
+@media (max-width: 1200px) {
+  .admin-dashboard .six-column-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .admin-dashboard .six-column-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .admin-dashboard .grid-span-3 {
+    grid-column: span 3;
+  }
+  
+  .admin-dashboard .grid-span-4 {
+    grid-column: 1 / -1;
+  }
+  
+  .admin-dashboard .grid-span-2 {
+    grid-column: span 3;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-dashboard .six-column-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-dashboard .grid-span-1,
+  .admin-dashboard .grid-span-2,
+  .admin-dashboard .grid-span-3,
+  .admin-dashboard .grid-span-4,
+  .admin-dashboard .grid-span-6 {
+    grid-column: 1 / -1; /* Full width on small screens */
+  }
+  
+  .admin-dashboard .app-drawer {
+    justify-content: flex-start;
+  }
+  
+  .admin-dashboard .drawer-item {
+    width: 70px;
+    height: 70px;
+  }
+}
+
+/* Animation for spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -6,8 +6,8 @@ import "./App.css";
 
 // Lazy load all page components
 const Login = lazy(() => import("./pages/Login/Login"));
-const AdminDashboard = lazy(() => import("./pages/Dashboard/AdminDashboard"));
-const UserDashboard = lazy(() => import("./pages/Dashboard/UserDashboard"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard/AdminDashboard"));
+const UserDashboard = lazy(() => import("./pages/UserDashboard/UserDashboard"));
 const UserManagement = lazy(() => import("./pages/UserManagement/UserManagement"));
 const ProjectManagement = lazy(() => import("./pages/ProjectManagement/ProjectManagement"));
 const RouteManagement = lazy(() => import("./pages/RouteManagement/RouteManagement"));

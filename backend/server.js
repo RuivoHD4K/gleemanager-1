@@ -434,65 +434,104 @@ const server = http.createServer((req, res) => {
   }
 
   else if (req.method === "GET" && req.url === "/activity") {
-    // Check if token is valid
-    if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
-      res.writeHead(401, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ error: "Unauthorized" }));
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Format activity log entries into human-readable strings
+  const formattedActivities = activityLog.map(activity => {
+    const timeAgo = formatTimeAgo(activity.timestamp);
+    const username = activity.userInfo.username || activity.userInfo.email || 'Unknown user';
+    
+    let message = '';
+    switch (activity.type) {
+      // User related activities
+      case 'user_created':
+        message = `${username} created a new user: ${activity.details.email || 'New user'}`;
+        break;
+      case 'user_deleted':
+        message = `${username} deleted user: ${activity.details.email || 'Unknown user'}`;
+        break;
+        
+      // Project related activities
+      case 'project_created':
+        message = `${username} created a new project: ${activity.details.projectName || 'New project'}`;
+        break;
+      case 'project_deleted':
+        message = `${username} deleted project: ${activity.details.projectName || 'Unknown project'}`;
+        break;
+      case 'project_assigned':
+        message = `${username} assigned ${activity.details.projectName || 'a project'} to ${activity.details.username || 'a user'}`;
+        break;
+      case 'project_unassigned':
+        message = `${username} removed ${activity.details.projectName || 'a project'} assignment from ${activity.details.username || 'a user'}`;
+        break;
+        
+      // Company related activities
+      case 'company_created':
+        message = `${username} created a new company: ${activity.details.companyName || 'New company'}`;
+        break;
+      case 'company_deleted':
+        message = `${username} deleted company: ${activity.details.companyName || 'Unknown company'}`;
+        break;
+        
+      // Template related activities
+      case 'template_uploaded':
+        message = `${username} uploaded a new Excel template: ${activity.details.name || 'New template'}`;
+        break;
+      case 'template_deleted':
+        message = `${username} deleted Excel template: ${activity.details.name || 'Unknown template'}`;
+        break;
+        
+      // Route related activities
+      case 'route_created':
+        message = `${username} created a new route from ${activity.details.startLocation} to ${activity.details.destination}`;
+        break;
+      case 'route_deleted':
+        message = `${username} deleted route from ${activity.details.startLocation} to ${activity.details.destination}`;
+        break;
+      case 'route_updated':
+        message = `${username} updated route from ${activity.details.startLocation} to ${activity.details.destination}`;
+        break;
+        
+      // Signature related activities
+      case 'signature_updated':
+        message = `${username} updated their signature`;
+        break;
+      case 'signature_deleted':
+        message = `${username} deleted their signature`;
+        break;
+        
+      // Holiday request related activities
+      case 'holiday_requested':
+        message = `${username} requested time off on dates: ${activity.details.dates || 'Unknown dates'}`;
+        break;
+      case 'holiday_approved':
+        message = `${username} approved time off request for ${activity.details.username || 'a user'} (dates: ${activity.details.dates || 'Unknown dates'})`;
+        break;
+      case 'holiday_rejected':
+        message = `${username} rejected time off request for ${activity.details.username || 'a user'} (dates: ${activity.details.dates || 'Unknown dates'})`;
+        break;
+      case 'holiday_request_canceled':
+        message = `${username} canceled time off request for ${activity.details.username || username} (dates: ${activity.details.dates || 'Unknown dates'})`;
+        break;
+      case 'holidays_removed':
+        message = `${username} removed time off for user ${activity.details.userId || 'Unknown user'} (days: ${activity.details.days || 'Unknown dates'})`;
+        break;
+        
+      // Add a specific message for any currently unknown activity type
+      default:
+        message = `${username} performed action: ${activity.type.replace(/_/g, ' ')}`;
     }
     
-    // Format activity log entries into human-readable strings
-    const formattedActivities = activityLog.map(activity => {
-      const timeAgo = formatTimeAgo(activity.timestamp);
-      const username = activity.userInfo.username || activity.userInfo.email || 'Unknown user';
-      
-      let message = '';
-      switch (activity.type) {
-        case 'user_created':
-          message = `${username} created a new user: ${activity.details.email || 'New user'}`;
-          break;
-        case 'user_deleted':
-          message = `${username} deleted user: ${activity.details.email || 'Unknown user'}`;
-          break;
-        case 'project_created':
-          message = `${username} created a new project: ${activity.details.projectName || 'New project'}`;
-          break;
-        case 'project_deleted':
-          message = `${username} deleted project: ${activity.details.projectName || 'Unknown project'}`;
-          break;
-        case 'company_created':
-          message = `${username} created a new company: ${activity.details.companyName || 'New company'}`;
-          break;
-        case 'company_deleted':
-          message = `${username} deleted company: ${activity.details.companyName || 'Unknown company'}`;
-          break;
-        case 'template_uploaded':
-          message = `${username} uploaded a new Excel template: ${activity.details.name || 'New template'}`;
-          break;
-        case 'template_deleted':
-          message = `${username} deleted Excel template: ${activity.details.name || 'Unknown template'}`;
-          break;
-        case 'project_assigned':
-          message = `${username} assigned ${activity.details.projectName || 'a project'} to ${activity.details.username || 'a user'}`;
-          break;
-        case 'project_unassigned':
-          message = `${username} removed ${activity.details.projectName || 'a project'} assignment from ${activity.details.username || 'a user'}`;
-          break;
-        case 'route_created':
-          message = `${username} created a new route from ${activity.details.startLocation} to ${activity.details.destination}`;
-          break;
-        case 'route_deleted':
-          message = `${username} deleted route from ${activity.details.startLocation} to ${activity.details.destination}`;
-          break;
-        default:
-          message = `${username} performed an action`;
-      }
-      
-      return `${message} (${timeAgo})`;
-    });
-    
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(formattedActivities));
-  }
+    return `${message} (${timeAgo})`;
+  });
+  
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(formattedActivities));
+}
   
   // Authentication endpoint
   else if (req.method === "POST" && req.url === "/authenticate") {
@@ -2816,70 +2855,14 @@ else if (req.method === "DELETE" && req.url.match(/^\/users\/[^\/]+\/signature$/
     });
 }
 
-else if (req.method === "GET" && req.url.match(/^\/users\/[^\/]+\/holidays$/)) {
-  // Extract userId from URL
-  const userId = req.url.split("/")[2];
-  
+else if (req.method === "POST" && req.url.match(/^\/holiday-requests$/)) {
   // Check if token is valid
   if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
     res.writeHead(401, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
   
-  // Get holidays by userId
-  (async () => {
-    try {
-      // Use ScanCommand to find all holidays for this user
-      const params = new ScanCommand({
-        TableName: "Holidays",
-        FilterExpression: "userId = :userId",
-        ExpressionAttributeValues: {
-          ":userId": userId
-        }
-      });
-      
-      const result = await dynamoDB.send(params);
-      
-      if (!result.Items) {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify([]));
-      }
-      
-      // Format dates for holiday items
-      const formattedHolidays = result.Items.map(holiday => ({
-        ...holiday,
-        requestDate: formatDateTime(holiday.requestDate),
-        dates: holiday.dates.map(date => formatDate(date))
-      }));
-      
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(formattedHolidays));
-    } catch (err) {
-      console.error("Error fetching user holidays:", err);
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: err.message }));
-    }
-  })();
-}
-
-// Submit new holiday request
-else if (req.method === "POST" && req.url.match(/^\/users\/[^\/]+\/holidays$/)) {
-  // Extract userId from URL
-  const userId = req.url.split("/")[2];
-  
-  // Check if token is valid
-  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
-    res.writeHead(401, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ error: "Unauthorized" }));
-  }
-  
-  // Verify that the token user is authorized to create holidays for this user
-  // Users can only request holidays for themselves
-  const tokenUserId = tokenStore.get(token).userId;
-  if (tokenUserId !== userId) {
-    res.writeHead(403, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ error: "You can only request holidays for yourself" }));
-  }
+  const userId = tokenStore.get(token).userId;
   
   let body = "";
   req.on("data", (chunk) => {
@@ -2888,20 +2871,18 @@ else if (req.method === "POST" && req.url.match(/^\/users\/[^\/]+\/holidays$/)) 
   
   req.on("end", async () => {
     try {
-      const holidayData = JSON.parse(body);
+      const requestData = JSON.parse(body);
       
-      // Validate holiday input
-      if (!holidayData.dates || !Array.isArray(holidayData.dates) || holidayData.dates.length === 0) {
+      // Validate request data
+      if (!requestData.dates || !Array.isArray(requestData.dates) || requestData.dates.length === 0) {
         res.writeHead(400, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: "At least one date is required" }));
       }
       
-      // Get the user to include their details in the request
+      // Get user information
       const userParams = new GetCommand({
         TableName: "Users",
-        Key: {
-          userId: userId
-        }
+        Key: { userId }
       });
       
       const userResult = await dynamoDB.send(userParams);
@@ -2913,46 +2894,40 @@ else if (req.method === "POST" && req.url.match(/^\/users\/[^\/]+\/holidays$/)) 
       
       const user = userResult.Item;
       
-      // Generate unique holiday request ID
+      // Generate a unique request ID
       const requestId = "holiday-" + uuidv4().substring(0, 8);
       
-      // Create the holiday request object
+      // Create the holiday request
       const holidayRequest = {
         requestId,
         userId,
         username: user.username || user.email.split('@')[0],
-        email: user.email,
-        dates: holidayData.dates,
+        dates: requestData.dates,
         status: "pending",
         requestDate: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        approvedBy: null,
+        approvedAt: null,
+        notes: requestData.notes || ""
       };
       
       const params = new PutCommand({
-        TableName: "Holidays",
+        TableName: "HolidayRequests",
         Item: holidayRequest
       });
       
       await dynamoDB.send(params);
       
-      // Log the holiday request creation
+      // Log the holiday request
       await logActivity(userId, 'holiday_requested', {
+        requestId,
         username: holidayRequest.username,
-        dates: holidayData.dates.join(', ')
+        dates: requestData.dates.join(', ')
       });
-      
-      // Format dates for response
-      const formattedHoliday = {
-        ...holidayRequest,
-        requestDate: formatDateTime(holidayRequest.requestDate),
-        updatedAt: formatDateTime(holidayRequest.updatedAt),
-        dates: holidayRequest.dates.map(date => formatDate(date))
-      };
       
       res.writeHead(201, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
         message: "Holiday request submitted successfully",
-        holiday: formattedHoliday
+        requestId
       }));
     } catch (err) {
       console.error("Error creating holiday request:", err);
@@ -2962,10 +2937,10 @@ else if (req.method === "POST" && req.url.match(/^\/users\/[^\/]+\/holidays$/)) 
   });
 }
 
-// Cancel a holiday request
-else if (req.method === "DELETE" && req.url.match(/^\/holidays\/[^\/]+$/)) {
-  // Extract requestId from URL
-  const requestId = req.url.split("/")[2];
+// 2. Get all holiday requests for a user
+else if (req.method === "GET" && req.url.match(/^\/users\/[^\/]+\/holiday-requests$/)) {
+  // Extract userId from URL
+  const targetUserId = req.url.split("/")[2];
   
   // Check if token is valid
   if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
@@ -2973,37 +2948,16 @@ else if (req.method === "DELETE" && req.url.match(/^\/holidays\/[^\/]+$/)) {
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
   
-  // Get the user ID from the token
+  // Get user ID from token
   const currentUserId = tokenStore.get(token).userId;
   
+  // Check if user is requesting their own requests or is an admin
   (async () => {
     try {
-      // Get the holiday request
-      const getParams = new GetCommand({
-        TableName: "Holidays",
-        Key: {
-          requestId: requestId
-        }
-      });
-      
-      const holidayResult = await dynamoDB.send(getParams);
-      
-      if (!holidayResult.Item) {
-        res.writeHead(404, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Holiday request not found" }));
-      }
-      
-      const holidayRequest = holidayResult.Item;
-      
-      // Check if user is admin or the request owner
-      const isRequestOwner = holidayRequest.userId === currentUserId;
-      
-      // Get user to check role
+      // Get the current user to check role
       const userParams = new GetCommand({
         TableName: "Users",
-        Key: {
-          userId: currentUserId
-        }
+        Key: { userId: currentUserId }
       });
       
       const userResult = await dynamoDB.send(userParams);
@@ -3016,85 +2970,57 @@ else if (req.method === "DELETE" && req.url.match(/^\/holidays\/[^\/]+$/)) {
       const user = userResult.Item;
       const isAdmin = user.role === "admin";
       
-      // Only allow cancel if user is admin or request owner
-      if (!isAdmin && !isRequestOwner) {
+      // Only allow access to own requests or admin access
+      if (currentUserId !== targetUserId && !isAdmin) {
         res.writeHead(403, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Unauthorized to cancel this request" }));
+        return res.end(JSON.stringify({ error: "Unauthorized to view these requests" }));
       }
       
-      // Allow users to cancel both pending and approved holidays
-      // Only restrict if it's in rejected status
-      if (!isAdmin && holidayRequest.status === "rejected") {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Rejected requests cannot be canceled" }));
-      }
-      
-      // Delete the holiday request
-      const deleteParams = new DeleteCommand({
-        TableName: "Holidays",
-        Key: {
-          requestId: requestId
+      // Fetch holiday requests for the target user
+      const params = new ScanCommand({
+        TableName: "HolidayRequests",
+        FilterExpression: "userId = :userId",
+        ExpressionAttributeValues: {
+          ":userId": targetUserId
         }
       });
       
-      await dynamoDB.send(deleteParams);
-      
-      // Log the cancellation with appropriate message
-      let activityType = 'holiday_canceled';
-      let activityMessage = 'canceled';
-      
-      if (holidayRequest.status === "approved") {
-        activityType = 'approved_holiday_canceled';
-        activityMessage = 'canceled an approved';
-      }
-      
-      await logActivity(currentUserId, activityType, {
-        requestId: requestId,
-        username: holidayRequest.username,
-        dates: holidayRequest.dates.join(', '),
-        status: holidayRequest.status
-      });
+      const result = await dynamoDB.send(params);
       
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ 
-        message: "Holiday request canceled successfully",
-        status: holidayRequest.status
-      }));
+      res.end(JSON.stringify(result.Items || []));
     } catch (err) {
-      console.error("Error canceling holiday request:", err);
+      console.error("Error fetching holiday requests:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
     }
   })();
 }
 
-
-// Get all pending holiday requests (admin only)
-else if (req.method === "GET" && req.url === "/holidays/pending") {
+// 3. Get pending holiday requests (admin only)
+else if (req.method === "GET" && req.url === "/holiday-requests/pending") {
   // Check if token is valid
   if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
     res.writeHead(401, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
   
-  // Check if user is admin
-  const tokenUserId = tokenStore.get(token).userId;
+  // Get user ID from token
+  const currentUserId = tokenStore.get(token).userId;
   
   (async () => {
     try {
-      // Get the user to check role
+      // Get the current user to check role
       const userParams = new GetCommand({
         TableName: "Users",
-        Key: {
-          userId: tokenUserId
-        }
+        Key: { userId: currentUserId }
       });
       
       const userResult = await dynamoDB.send(userParams);
       
       if (!userResult.Item) {
-        res.writeHead(401, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Unauthorized" }));
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
       }
       
       const user = userResult.Item;
@@ -3105,9 +3031,9 @@ else if (req.method === "GET" && req.url === "/holidays/pending") {
         return res.end(JSON.stringify({ error: "Admin access required" }));
       }
       
-      // Use ScanCommand to find all pending holiday requests
+      // Fetch pending holiday requests
       const params = new ScanCommand({
-        TableName: "Holidays",
+        TableName: "HolidayRequests",
         FilterExpression: "#status = :status",
         ExpressionAttributeNames: {
           "#status": "status" // 'status' is a reserved word in DynamoDB
@@ -3119,31 +3045,18 @@ else if (req.method === "GET" && req.url === "/holidays/pending") {
       
       const result = await dynamoDB.send(params);
       
-      if (!result.Items) {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify([]));
-      }
-      
-      // Format dates for holiday items
-      const formattedHolidays = result.Items.map(holiday => ({
-        ...holiday,
-        requestDate: formatDateTime(holiday.requestDate),
-        updatedAt: formatDateTime(holiday.updatedAt),
-        dates: holiday.dates.map(date => formatDate(date))
-      }));
-      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(formattedHolidays));
+      res.end(JSON.stringify(result.Items || []));
     } catch (err) {
-      console.error("Error fetching pending holidays:", err);
+      console.error("Error fetching pending holiday requests:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
     }
   })();
 }
 
-// Approve a holiday request (admin only)
-else if (req.method === "PUT" && req.url.match(/^\/holidays\/[^\/]+\/approve$/)) {
+// 4. Approve or reject a holiday request (admin only)
+else if (req.method === "PUT" && req.url.match(/^\/holiday-requests\/[^\/]+\/status$/)) {
   // Extract requestId from URL
   const requestId = req.url.split("/")[2];
   
@@ -3153,24 +3066,35 @@ else if (req.method === "PUT" && req.url.match(/^\/holidays\/[^\/]+\/approve$/))
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
   
-  // Check if user is admin
+  // Get admin ID from token
   const adminUserId = tokenStore.get(token).userId;
   
-  (async () => {
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+  
+  req.on("end", async () => {
     try {
+      const statusData = JSON.parse(body);
+      
+      // Validate status
+      if (!statusData.status || (statusData.status !== "approved" && statusData.status !== "rejected")) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Valid status (approved or rejected) is required" }));
+      }
+      
       // Get the admin user to check role
       const userParams = new GetCommand({
         TableName: "Users",
-        Key: {
-          userId: adminUserId
-        }
+        Key: { userId: adminUserId }
       });
       
       const userResult = await dynamoDB.send(userParams);
       
       if (!userResult.Item) {
-        res.writeHead(401, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Unauthorized" }));
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
       }
       
       const adminUser = userResult.Item;
@@ -3181,76 +3105,168 @@ else if (req.method === "PUT" && req.url.match(/^\/holidays\/[^\/]+\/approve$/))
         return res.end(JSON.stringify({ error: "Admin access required" }));
       }
       
-      // First get the holiday request
+      // Get the holiday request
       const getParams = new GetCommand({
-        TableName: "Holidays",
-        Key: {
-          requestId: requestId
-        }
+        TableName: "HolidayRequests",
+        Key: { requestId }
       });
       
-      const holidayResult = await dynamoDB.send(getParams);
+      const result = await dynamoDB.send(getParams);
       
-      if (!holidayResult.Item) {
+      if (!result.Item) {
         res.writeHead(404, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: "Holiday request not found" }));
       }
       
-      const holidayRequest = holidayResult.Item;
+      const holidayRequest = result.Item;
       
-      // Only pending requests can be approved
+      // Only pending requests can be approved/rejected
       if (holidayRequest.status !== "pending") {
         res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Only pending requests can be approved" }));
+        return res.end(JSON.stringify({ error: `Request is already ${holidayRequest.status}` }));
       }
       
-      // Update the holiday request status
-      const updatedHoliday = {
+      // Update the request status
+      const now = new Date().toISOString();
+      const updatedRequest = {
         ...holidayRequest,
-        status: "approved",
+        status: statusData.status,
         approvedBy: adminUserId,
-        approvedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        approvedAt: now,
+        notes: statusData.notes ? `${holidayRequest.notes}\nAdmin: ${statusData.notes}` : holidayRequest.notes
       };
       
       const updateParams = new PutCommand({
-        TableName: "Holidays",
-        Item: updatedHoliday
+        TableName: "HolidayRequests",
+        Item: updatedRequest
       });
       
       await dynamoDB.send(updateParams);
       
-      // Log the approval
-      await logActivity(adminUserId, 'holiday_approved', {
-        requestId: requestId,
+      // If request is approved, update the UserHolidays table
+      if (statusData.status === "approved") {
+        // Process each date to update the appropriate month records
+        const monthMap = {};
+        
+        // Group dates by year-month
+        holidayRequest.dates.forEach(dateStr => {
+          const [year, month, day] = dateStr.split('-');
+          const yearMonth = `${year}-${month}`;
+          const dayNum = parseInt(day, 10);
+          
+          if (!monthMap[yearMonth]) {
+            monthMap[yearMonth] = [];
+          }
+          
+          monthMap[yearMonth].push(dayNum);
+        });
+        
+        // Update or create entries in UserHolidays table for each month
+        for (const [yearMonth, days] of Object.entries(monthMap)) {
+          // Check if an entry already exists for this user and month
+          const getHolidayParams = new ScanCommand({
+            TableName: "UserHolidays",
+            FilterExpression: "userId = :userId AND yearMonth = :yearMonth",
+            ExpressionAttributeValues: {
+              ":userId": holidayRequest.userId,
+              ":yearMonth": yearMonth
+            }
+          });
+          
+          const holidayResult = await dynamoDB.send(getHolidayParams);
+          
+          if (holidayResult.Items && holidayResult.Items.length > 0) {
+            // Update existing record
+            const existingRecord = holidayResult.Items[0];
+            const existingDays = new Set(existingRecord.days);
+            
+            // Add new days to the set (avoids duplicates)
+            days.forEach(day => existingDays.add(day));
+            
+            // Update metadata
+            const updatedMetadata = existingRecord.metadata || { requestIds: [], dayInfo: {} };
+            
+            // Add request ID if not already present
+            if (!updatedMetadata.requestIds.includes(requestId)) {
+              updatedMetadata.requestIds.push(requestId);
+            }
+            
+            // Add day info
+            days.forEach(day => {
+              updatedMetadata.dayInfo[day] = {
+                type: "vacation",
+                requestId: requestId
+              };
+            });
+            
+            // Save updated record
+            const updateHolidayParams = new PutCommand({
+              TableName: "UserHolidays",
+              Item: {
+                ...existingRecord,
+                days: Array.from(existingDays),
+                lastUpdated: now,
+                metadata: updatedMetadata
+              }
+            });
+            
+            await dynamoDB.send(updateHolidayParams);
+          } else {
+            // Create new record
+            const holidayId = `holiday-${holidayRequest.userId}-${yearMonth}`;
+            
+            const metadata = {
+              requestIds: [requestId],
+              dayInfo: {}
+            };
+            
+            // Add day info
+            days.forEach(day => {
+              metadata.dayInfo[day] = {
+                type: "vacation",
+                requestId: requestId
+              };
+            });
+            
+            const newHolidayParams = new PutCommand({
+              TableName: "UserHolidays",
+              Item: {
+                holidayId,
+                userId: holidayRequest.userId,
+                yearMonth,
+                days,
+                lastUpdated: now,
+                metadata
+              }
+            });
+            
+            await dynamoDB.send(newHolidayParams);
+          }
+        }
+      }
+      
+      // Log the approval/rejection
+      await logActivity(adminUserId, `holiday_${statusData.status}`, {
+        requestId,
         username: holidayRequest.username,
         dates: holidayRequest.dates.join(', ')
       });
       
-      // Format dates for response
-      const formattedHoliday = {
-        ...updatedHoliday,
-        requestDate: formatDateTime(updatedHoliday.requestDate),
-        approvedAt: formatDateTime(updatedHoliday.approvedAt),
-        updatedAt: formatDateTime(updatedHoliday.updatedAt),
-        dates: updatedHoliday.dates.map(date => formatDate(date))
-      };
-      
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
-        message: "Holiday request approved successfully",
-        holiday: formattedHoliday
+        message: `Holiday request ${statusData.status} successfully`,
+        requestId
       }));
     } catch (err) {
-      console.error("Error approving holiday request:", err);
+      console.error(`Error ${statusData?.status || 'updating'} holiday request:`, err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
     }
-  })();
+  });
 }
 
-// Reject a holiday request (admin only)
-else if (req.method === "PUT" && req.url.match(/^\/holidays\/[^\/]+\/reject$/)) {
+// 5. Cancel a holiday request (user can cancel their own pending requests)
+else if (req.method === "DELETE" && req.url.match(/^\/holiday-requests\/[^\/]+$/)) {
   // Extract requestId from URL
   const requestId = req.url.split("/")[2];
   
@@ -3260,106 +3276,87 @@ else if (req.method === "PUT" && req.url.match(/^\/holidays\/[^\/]+\/reject$/)) 
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
   
-  // Check if user is admin
-  const adminUserId = tokenStore.get(token).userId;
+  // Get user ID from token
+  const currentUserId = tokenStore.get(token).userId;
   
   (async () => {
     try {
-      // Get the admin user to check role
+      // Get the holiday request
+      const getParams = new GetCommand({
+        TableName: "HolidayRequests",
+        Key: { requestId }
+      });
+      
+      const result = await dynamoDB.send(getParams);
+      
+      if (!result.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Holiday request not found" }));
+      }
+      
+      const holidayRequest = result.Item;
+      
+      // Check if user is admin
       const userParams = new GetCommand({
         TableName: "Users",
-        Key: {
-          userId: adminUserId
-        }
+        Key: { userId: currentUserId }
       });
       
       const userResult = await dynamoDB.send(userParams);
       
       if (!userResult.Item) {
-        res.writeHead(401, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Unauthorized" }));
-      }
-      
-      const adminUser = userResult.Item;
-      
-      // Verify user is admin
-      if (adminUser.role !== "admin") {
-        res.writeHead(403, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Admin access required" }));
-      }
-      
-      // First get the holiday request
-      const getParams = new GetCommand({
-        TableName: "Holidays",
-        Key: {
-          requestId: requestId
-        }
-      });
-      
-      const holidayResult = await dynamoDB.send(getParams);
-      
-      if (!holidayResult.Item) {
         res.writeHead(404, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Holiday request not found" }));
+        return res.end(JSON.stringify({ error: "User not found" }));
       }
       
-      const holidayRequest = holidayResult.Item;
+      const isAdmin = userResult.Item.role === "admin";
       
-      // Only pending requests can be rejected
-      if (holidayRequest.status !== "pending") {
+      // Check if user is authorized to cancel the request
+      if (currentUserId !== holidayRequest.userId && !isAdmin) {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Unauthorized to cancel this request" }));
+      }
+      
+      // If not admin, only pending requests can be canceled
+      if (!isAdmin && holidayRequest.status !== "pending") {
         res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Only pending requests can be rejected" }));
+        return res.end(JSON.stringify({ error: "Only pending requests can be canceled" }));
       }
       
-      // Update the holiday request status
-      const updatedHoliday = {
-        ...holidayRequest,
-        status: "rejected",
-        rejectedBy: adminUserId,
-        rejectedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      const updateParams = new PutCommand({
-        TableName: "Holidays",
-        Item: updatedHoliday
+      // Delete the request
+      const deleteParams = new DeleteCommand({
+        TableName: "HolidayRequests",
+        Key: { requestId }
       });
       
-      await dynamoDB.send(updateParams);
+      await dynamoDB.send(deleteParams);
       
-      // Log the rejection
-      await logActivity(adminUserId, 'holiday_rejected', {
-        requestId: requestId,
+      // Log the cancellation
+      await logActivity(currentUserId, 'holiday_request_canceled', {
+        requestId,
         username: holidayRequest.username,
         dates: holidayRequest.dates.join(', ')
       });
       
-      // Format dates for response
-      const formattedHoliday = {
-        ...updatedHoliday,
-        requestDate: formatDateTime(updatedHoliday.requestDate),
-        rejectedAt: formatDateTime(updatedHoliday.rejectedAt),
-        updatedAt: formatDateTime(updatedHoliday.updatedAt),
-        dates: updatedHoliday.dates.map(date => formatDate(date))
-      };
-      
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
-        message: "Holiday request rejected successfully",
-        holiday: formattedHoliday
+        message: "Holiday request canceled successfully",
+        requestId
       }));
     } catch (err) {
-      console.error("Error rejecting holiday request:", err);
+      console.error("Error canceling holiday request:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
     }
   })();
 }
 
-// Get national holidays for Portugal
-else if (req.method === "GET" && req.url.match(/^\/holidays\/national\/\d{4}$/)) {
-  // Extract year from URL
-  const year = req.url.split("/")[3];
+// 6. Get user holidays for a specific month
+else if (req.method === "GET" && req.url.match(/^\/users\/[^\/]+\/holidays\/\d{4}-\d{2}$/)) {
+  // Extract userId and yearMonth from URL
+  const urlParts = req.url.split("/");
+  const userId = urlParts[2];
+  const yearMonth = urlParts[4];
   
   // Check if token is valid
   if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
@@ -3367,30 +3364,229 @@ else if (req.method === "GET" && req.url.match(/^\/holidays\/national\/\d{4}$/))
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
   
-  // Fetch national holidays from external API
+  // Get current user ID from token
+  const currentUserId = tokenStore.get(token).userId;
+  
   (async () => {
     try {
-      // Use fetch to call the Nager.Date API for Portuguese holidays
+      // Check if current user is the user or an admin
+      if (currentUserId !== userId) {
+        const userParams = new GetCommand({
+          TableName: "Users",
+          Key: { userId: currentUserId }
+        });
+        
+        const userResult = await dynamoDB.send(userParams);
+        
+        if (!userResult.Item || userResult.Item.role !== "admin") {
+          res.writeHead(403, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Unauthorized to view these holidays" }));
+        }
+      }
+      
+      // Get holidays for the specified user and month
+      const params = new ScanCommand({
+        TableName: "UserHolidays",
+        FilterExpression: "userId = :userId AND yearMonth = :yearMonth",
+        ExpressionAttributeValues: {
+          ":userId": userId,
+          ":yearMonth": yearMonth
+        }
+      });
+      
+      const result = await dynamoDB.send(params);
+      
+      // If no record found, return empty days array
+      if (!result.Items || result.Items.length === 0) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ userId, yearMonth, days: [] }));
+      }
+      
+      // Return the holiday record
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(result.Items[0]));
+    } catch (err) {
+      console.error("Error fetching user holidays:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  })();
+}
+
+// 7. Remove specific holidays from a month (user removing their own approved holidays)
+else if (req.method === "DELETE" && req.url.match(/^\/users\/[^\/]+\/holidays\/\d{4}-\d{2}$/)) {
+  // Extract userId and yearMonth from URL
+  const urlParts = req.url.split("/");
+  const userId = urlParts[2];
+  const yearMonth = urlParts[4];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // Get current user ID from token
+  const currentUserId = tokenStore.get(token).userId;
+  
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+  
+  req.on("end", async () => {
+    try {
+      const data = JSON.parse(body);
+      
+      // Validate request data
+      if (!data.days || !Array.isArray(data.days) || data.days.length === 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "At least one day must be specified" }));
+      }
+      
+      // Ensure all days are integers
+      const daysToRemove = data.days.map(day => parseInt(day, 10));
+      
+      // Check if current user is the user or an admin
+      let isAdmin = false;
+      if (currentUserId !== userId) {
+        const userParams = new GetCommand({
+          TableName: "Users",
+          Key: { userId: currentUserId }
+        });
+        
+        const userResult = await dynamoDB.send(userParams);
+        
+        if (!userResult.Item || userResult.Item.role !== "admin") {
+          res.writeHead(403, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Unauthorized to modify these holidays" }));
+        }
+        
+        isAdmin = true;
+      }
+      
+      // Get holidays for the specified user and month
+      const getParams = new ScanCommand({
+        TableName: "UserHolidays",
+        FilterExpression: "userId = :userId AND yearMonth = :yearMonth",
+        ExpressionAttributeValues: {
+          ":userId": userId,
+          ":yearMonth": yearMonth
+        }
+      });
+      
+      const result = await dynamoDB.send(getParams);
+      
+      // If no record found, nothing to remove
+      if (!result.Items || result.Items.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "No holidays found for this month" }));
+      }
+      
+      const holidayRecord = result.Items[0];
+      
+      // Remove the specified days
+      const updatedDays = holidayRecord.days.filter(day => !daysToRemove.includes(day));
+      
+      // Update metadata
+      const updatedMetadata = { ...holidayRecord.metadata };
+      
+      // Remove day info for removed days
+      daysToRemove.forEach(day => {
+        if (updatedMetadata.dayInfo && updatedMetadata.dayInfo[day]) {
+          delete updatedMetadata.dayInfo[day];
+        }
+      });
+      
+      // Update the record
+      const updateParams = new PutCommand({
+        TableName: "UserHolidays",
+        Item: {
+          ...holidayRecord,
+          days: updatedDays,
+          lastUpdated: new Date().toISOString(),
+          metadata: updatedMetadata
+        }
+      });
+      
+      await dynamoDB.send(updateParams);
+      
+      // Log the removal
+      await logActivity(currentUserId, 'holidays_removed', {
+        userId,
+        yearMonth,
+        days: daysToRemove.join(', ')
+      });
+      
+      // Return the updated holiday record
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        message: "Holidays removed successfully",
+        userId,
+        yearMonth,
+        removedDays: daysToRemove,
+        remainingDays: updatedDays
+      }));
+    } catch (err) {
+      console.error("Error removing holidays:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
+
+// Get national holidays for a specific country and year
+else if (req.method === "GET" && req.url.match(/^\/national-holidays\/[A-Z]{2}\/\d{4}$/)) {
+  // Extract country code and year from URL
+  const urlParts = req.url.split("/");
+  const countryCode = urlParts[2];
+  const year = urlParts[3];
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  // This endpoint only supports Portugal
+  if (countryCode !== "PT") {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Only Portugal (PT) is supported for holiday data" }));
+  }
+  
+  (async () => {
+    try {
+      // Directly fetch from the nager.date API for Portugal holidays
       const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/PT`);
       
       if (!response.ok) {
-        throw new Error("Failed to fetch national holidays");
+        throw new Error(`Failed to fetch holidays: ${response.status} ${response.statusText}`);
       }
       
       const holidays = await response.json();
       
-      // Format the response to include just the dates and names
+      // Format the holidays for our response
       const formattedHolidays = holidays.map(holiday => ({
-        date: formatDate(holiday.date),
-        name: holiday.localName
+        date: holiday.date,
+        name: holiday.localName,
+        englishName: holiday.name,
+        type: holiday.types[0] || "Public"
       }));
       
+      // Log the successful fetch
+      console.log(`Successfully fetched ${formattedHolidays.length} holidays for Portugal in ${year}`);
+      
+      // Return the holidays directly without storing in database
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(formattedHolidays));
+      
     } catch (err) {
-      console.error("Error fetching national holidays:", err);
+      console.error("Error fetching Portugal holidays:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: err.message }));
+      res.end(JSON.stringify({ 
+        error: "Failed to fetch holiday data", 
+        details: err.message 
+      }));
     }
   })();
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, X, AlertTriangle, Calendar, User } from 'lucide-react';
 import { useToast } from '../../components/Toast/ToastContext';
+import './HolidayApproval.css';
 
 const HolidayApprovalPanel = () => {
   const toast = useToast();
@@ -31,8 +32,8 @@ const HolidayApprovalPanel = () => {
         return;
       }
       
-      // Fetch pending holiday requests
-      const response = await fetch("http://localhost:5000/holidays/pending", {
+      // Fetch pending holiday requests using the correct endpoint
+      const response = await fetch("http://localhost:5000/holiday-requests/pending", {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -88,7 +89,7 @@ const HolidayApprovalPanel = () => {
     return `${day}/${month}/${year}`;
   };
 
-  const approveRequest = async (requestId) => {
+  const updateRequestStatus = async (requestId, status) => {
     try {
       setProcessingIds(prev => [...prev, requestId]);
       
@@ -98,60 +99,50 @@ const HolidayApprovalPanel = () => {
         throw new Error("Not authenticated");
       }
       
-      const response = await fetch(`http://localhost:5000/holidays/${requestId}/approve`, {
+      // Use the correct endpoint for updating holiday request status
+      const response = await fetch(`http://localhost:5000/holiday-requests/${requestId}/status`, {
         method: 'PUT',
         headers: {
-          "Authorization": `Bearer ${token}`
-        }
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ 
+          status: status,
+          notes: `Request ${status} by admin` 
+        })
       });
       
       if (!response.ok) {
-        throw new Error("Failed to approve holiday request");
+        throw new Error(`Failed to ${status} holiday request`);
       }
       
-      // Remove the approved request from the list
+      // Remove the processed request from the list
       setPendingRequests(prev => prev.filter(req => req.requestId !== requestId));
       
-      toast.showSuccess("Holiday request approved successfully");
+      toast.showSuccess(`Holiday request ${status} successfully`);
     } catch (error) {
-      console.error("Error approving holiday request:", error);
-      toast.showError("Failed to approve holiday request");
+      console.error(`Error ${status}ing holiday request:`, error);
+      toast.showError(`Failed to ${status} holiday request`);
     } finally {
       setProcessingIds(prev => prev.filter(id => id !== requestId));
     }
   };
 
+  const approveRequest = async (requestId) => {
+    await updateRequestStatus(requestId, "approved");
+  };
+
   const rejectRequest = async (requestId) => {
-    try {
-      setProcessingIds(prev => [...prev, requestId]);
-      
-      const token = localStorage.getItem("authToken");
-      
-      if (!token) {
-        throw new Error("Not authenticated");
-      }
-      
-      const response = await fetch(`http://localhost:5000/holidays/${requestId}/reject`, {
-        method: 'PUT',
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to reject holiday request");
-      }
-      
-      // Remove the rejected request from the list
-      setPendingRequests(prev => prev.filter(req => req.requestId !== requestId));
-      
-      toast.showSuccess("Holiday request rejected");
-    } catch (error) {
-      console.error("Error rejecting holiday request:", error);
-      toast.showError("Failed to reject holiday request");
-    } finally {
-      setProcessingIds(prev => prev.filter(id => id !== requestId));
-    }
+    await updateRequestStatus(requestId, "rejected");
+  };
+
+  // Format date for display (YYYY-MM-DD to DD/MM/YYYY)
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
   if (loading) {
@@ -189,7 +180,7 @@ const HolidayApprovalPanel = () => {
                 <div className="requester-info">
                   <User size={20} />
                   <span className="username">{request.username}</span>
-                  <span className="email">({request.email})</span>
+                  <span className="email">({request.userId})</span>
                 </div>
                 <span className="request-time">{formatTimeElapsed(request.requestDate)}</span>
               </div>
@@ -199,7 +190,7 @@ const HolidayApprovalPanel = () => {
                 <div className="dates-list">
                   {request.dates.map((date, index) => (
                     <span key={index} className="date-badge">
-                      {date}
+                      {formatDate(date)}
                     </span>
                   ))}
                 </div>
@@ -207,6 +198,12 @@ const HolidayApprovalPanel = () => {
                   {request.dates.length} {request.dates.length === 1 ? 'day' : 'days'}
                 </span>
               </div>
+              
+              {request.notes && (
+                <div className="request-notes">
+                  <p><strong>Notes:</strong> {request.notes}</p>
+                </div>
+              )}
               
               <div className="request-actions">
                 <button 

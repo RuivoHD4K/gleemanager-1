@@ -1236,6 +1236,14 @@ body {
   grid-column: span 3;
 }
 
+/* Six-column grid for dashboard layouts */
+.six-column-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
 /* Holiday Calendar Styles */
 .calendar-description {
   margin-bottom: var(--spacing-md);
@@ -1384,6 +1392,14 @@ body {
   justify-content: center;
 }
 
+.delete-mode-help {
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-sm);
+  color: #666;
+  text-align: center;
+  font-style: italic;
+}
+
 /* Holiday Summary Card */
 .holiday-summary {
   display: flex;
@@ -1449,7 +1465,7 @@ body {
   border-radius: var(--radius-md);
   color: #888;
   text-align: center;
-  height: 100%;
+  height: 200px;
   min-height: 180px;
 }
 
@@ -1623,20 +1639,6 @@ body {
   gap: var(--spacing-md);
 }
 
-.action-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-  border: none;
-}
-
 .approve-btn {
   background-color: rgba(40, 167, 69, 0.15);
   color: var(--success-color);
@@ -1655,47 +1657,115 @@ body {
   background-color: rgba(220, 53, 69, 0.25);
 }
 
-.action-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.weekend-day {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #999;
+  cursor: not-allowed !important;
 }
 
-/* Responsive adjustments */
-@media (max-width: 1200px) {
-  .grid-span-1, .grid-span-2, .grid-span-3 {
-    grid-column: 1 / -1; /* Take full width on smaller screens */
-  }
-  
-  .holiday-summary-item {
-    flex-direction: row;
-  }
+.holiday-deletable {
+  background-color: rgba(40, 167, 69, 0.2);
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
 }
 
-@media (max-width: 768px) {
-  .calendar-table td {
-    height: 32px;
-    font-size: 0.9rem;
-  }
-  
-  .calendar-legend {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-xs);
-  }
-  
-  .request-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-xs);
-  }
-  
-  .requested-dates {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-sm);
-  }
-  
-  .request-days-count {
-    align-self: flex-end;
-  }
+.holiday-deletable:hover {
+  background-color: rgba(220, 53, 69, 0.15);
+}
+
+.delete-mode-toggle {
+  background-color: var(--gray-bg);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--spacing-sm);
+  transition: var(--transition);
+}
+
+.delete-mode-toggle:hover {
+  background-color: var(--light-gray);
+  color: var(--danger-color);
+}
+
+.delete-mode-toggle.active {
+  background-color: rgba(220, 53, 69, 0.15);
+  color: var(--danger-color);
+}
+
+.delete-selected {
+  background-color: rgba(220, 53, 69, 0.25);
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+}
+
+.delete-selected:hover {
+  background-color: rgba(220, 53, 69, 0.35);
+}
+
+.legend-box.holiday-deletable {
+  background-color: rgba(40, 167, 69, 0.2);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.legend-box.delete-selected {
+  background-color: rgba(220, 53, 69, 0.25);
+  border: 1px solid rgba(220, 53, 69, 0.4);
+}
+
+.legend-box.weekend-day {
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Fix for AdminDashboard grid */
+.admin-dashboard .six-column-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--spacing-md);
+}
+
+.admin-dashboard .grid-span-1 {
+  grid-column: span 1;
+}
+
+.admin-dashboard .grid-span-2 {
+  grid-column: span 2;
+}
+
+.admin-dashboard .grid-span-3 {
+  grid-column: span 3;
+}
+
+.admin-dashboard .grid-span-4 {
+  grid-column: span 4;
+}
+
+/* Fix for UserDashboard grid */
+.user-dashboard .six-column-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--spacing-md);
+}
+
+.user-dashboard .grid-span-1 {
+  grid-column: span 1;
+}
+
+.user-dashboard .grid-span-2 {
+  grid-column: span 2;
+}
+
+.user-dashboard .grid-span-3 {
+  grid-column: span 3;
+}
+
+.user-dashboard .grid-span-4 {
+  grid-column: span 4;
 }
