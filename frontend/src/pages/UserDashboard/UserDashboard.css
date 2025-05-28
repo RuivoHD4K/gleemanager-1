@@ -156,9 +156,19 @@
 
 .national-holiday {
   background-color: rgba(40, 167, 69, 0.35);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    rgba(40, 167, 69, 0.35) 8px,
+    rgba(40, 167, 69, 0.35) 10px
+  );
+  border: 2px solid rgba(85, 172, 105, 0.8) !important;
   font-weight: 500;
   cursor: default;
 }
+
+
 
 .weekend-day {
   background-color: rgba(0, 0, 0, 0.05);
@@ -186,6 +196,49 @@
 
 .delete-selected:hover {
   background-color: rgba(220, 53, 69, 0.35);
+}
+
+/* Holiday comment field styles */
+.holiday-comment-container {
+  background-color: var(--gray-bg);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+.holiday-comment-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-sm);
+  color: var(--text-color);
+}
+
+.holiday-comment-input {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-sm);
+  background-color: white;
+  font-family: inherit;
+  font-size: var(--font-sm);
+  resize: vertical;
+  min-height: 80px;
+  transition: var(--transition-fast);
+}
+
+.holiday-comment-input:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.1);
+}
+
+.holiday-comment-count {
+  text-align: right;
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-xs);
+  color: #666;
 }
 
 /* Calendar Legend */
@@ -226,7 +279,14 @@
 
 .legend-box.national-holiday {
   background-color: rgba(40, 167, 69, 0.35);
-  border: 1px solid rgba(40, 167, 69, 0.5);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(40, 167, 69, 0.35) 4px,
+    rgba(40, 167, 69, 0.35) 5px
+  );
+  border: 2px solid rgba(85, 172, 105, 0.8) !important;
 }
 
 .legend-box.holiday-deletable {
@@ -251,6 +311,25 @@
   color: #666;
   text-align: center;
   font-style: italic;
+}
+
+/* View all holidays button */
+.view-all-holidays-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--info-color);
+  color: white;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  font-weight: 500;
+}
+
+.view-all-holidays-btn:hover {
+  background-color: #0055a3;
 }
 
 /* Holiday Summary Card */
@@ -358,6 +437,20 @@
 
 .request-date-label {
   margin-right: var(--spacing-xs);
+}
+
+.request-notes {
+  font-size: var(--font-xs);
+  color: #666;
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-xs);
+  border-top: 1px dotted var(--light-gray);
+  font-style: italic;
+}
+
+.request-notes-label {
+  margin-right: var(--spacing-xs);
+  font-weight: 500;
 }
 
 .cancel-request-btn {

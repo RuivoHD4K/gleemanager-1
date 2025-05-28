@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, AlertTriangle, Calendar, User } from 'lucide-react';
+import { Check, X, AlertTriangle, Calendar, User, MessageSquare } from 'lucide-react';
 import { useToast } from '../../components/Toast/ToastContext';
 import './HolidayApproval.css';
 
@@ -145,6 +145,11 @@ const HolidayApprovalPanel = () => {
     return `${day}/${month}/${year}`;
   };
 
+  // Check if the request has a comment other than the default one
+  const hasComment = (request) => {
+    return request.notes && request.notes !== "Requested through user dashboard";
+  };
+
   if (loading) {
     return (
       <div className="holiday-approval-loading">
@@ -199,9 +204,13 @@ const HolidayApprovalPanel = () => {
                 </span>
               </div>
               
-              {request.notes && (
-                <div className="request-notes">
-                  <p><strong>Notes:</strong> {request.notes}</p>
+              {hasComment(request) && (
+                <div className="request-comment">
+                  <div className="comment-header">
+                    <MessageSquare size={16} />
+                    <span>Comment:</span>
+                  </div>
+                  <p className="comment-text">{request.notes}</p>
                 </div>
               )}
               

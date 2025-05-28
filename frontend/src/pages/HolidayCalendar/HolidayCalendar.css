@@ -1,0 +1,587 @@
+/* HolidayCalendar.css */
+
+.holiday-calendar-page {
+  width: 100%;
+  padding: var(--spacing-md);
+}
+
+.company-calendar-container {
+  background-color: white;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  box-shadow: var(--card-shadow);
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Calendar header */
+.calendar-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  position: relative;
+}
+
+.month-title {
+  flex: 1;
+  font-size: var(--font-xl);
+  margin: 0;
+  text-align: center;
+  color: var(--text-color);
+}
+
+.month-nav-btn {
+  background-color: var(--gray-bg);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-lg);
+  transition: var(--transition);
+}
+
+.month-nav-btn:hover {
+  background-color: var(--light-gray);
+}
+
+.filter-toggle-btn {
+  background-color: var(--gray-bg);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--spacing-sm);
+  transition: var(--transition);
+}
+
+.filter-toggle-btn:hover {
+  background-color: var(--light-gray);
+}
+
+.refresh-btn {
+  background-color: var(--info-color);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: var(--transition);
+  font-weight: 500;
+}
+
+.refresh-btn:hover {
+  background-color: #0055a3;
+}
+
+/* Users legend at the top */
+.users-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--gray-bg);
+  border-radius: var(--radius-sm);
+}
+
+.user-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background-color: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.user-color-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.user-legend-name {
+  font-size: var(--font-sm);
+  font-weight: 500;
+}
+
+/* Filter panel */
+.filter-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 300px;
+  background-color: white;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: var(--spacing-md);
+  z-index: 10;
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.filter-header h3 {
+  margin: 0;
+  font-size: var(--font-base);
+}
+
+.clear-filter-btn {
+  background: none;
+  border: none;
+  color: var(--info-color);
+  cursor: pointer;
+  font-size: var(--font-sm);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.clear-filter-btn:hover {
+  background-color: rgba(0, 119, 204, 0.1);
+}
+
+.filter-search {
+  margin-bottom: var(--spacing-sm);
+}
+
+.filter-search input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+}
+
+.filter-search input:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(0, 119, 204, 0.1);
+}
+
+.filter-users-list {
+  overflow-y: auto;
+  flex: 1;
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-sm);
+}
+
+.filter-user-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.filter-user-item:last-child {
+  border-bottom: none;
+}
+
+.filter-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  width: 100%;
+}
+
+.filter-checkbox-label input {
+  margin-right: var(--spacing-sm);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--font-sm);
+}
+
+.username {
+  font-weight: 500;
+}
+
+.email {
+  font-size: var(--font-xs);
+  color: #666;
+}
+
+.no-users-message {
+  padding: var(--spacing-md);
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+/* Company Calendar Table */
+.company-calendar-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: 1px solid var(--light-gray);
+  border-spacing: 0; /* Ensure no spacing between cells */
+}
+
+.company-calendar-table th {
+  padding: var(--spacing-sm);
+  text-align: center;
+  font-weight: 500;
+  color: #666;
+  border-bottom: 1px solid var(--light-gray);
+  background-color: var(--gray-bg);
+}
+
+.company-calendar-table th:nth-child(1),
+.company-calendar-table th:nth-child(7) {
+  color: #999; /* Weekend header color */
+}
+
+.calendar-day {
+  border: 1px solid var(--light-gray);
+  vertical-align: top;
+  padding: 0;
+  position: relative;
+  height: 90px; /* Increased height to accommodate 4 rows */
+  min-height: 90px;
+  overflow: visible; /* Allow content to overflow for connecting bars */
+}
+
+.calendar-day-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+.empty-day {
+  background-color: #f9f9f9;
+}
+
+.weekend-day {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.national-holiday {
+  background-color: rgba(40, 167, 69, 0.15);
+}
+
+.day-number {
+  text-align: right;
+  padding: 2px 4px;
+  font-size: var(--font-sm);
+  font-weight: 500;
+}
+
+.weekend-day .day-number {
+  color: #999;
+}
+
+.national-holiday .day-number {
+  color: var(--success-color);
+}
+
+.national-holiday-name {
+  font-size: var(--font-xs);
+  color: var(--success-color);
+  text-align: center;
+  padding: 2px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 20px;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Holiday bars container */
+.holiday-bars-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  position: relative;
+  overflow: visible; /* Changed from hidden to visible to allow bars to connect */
+  min-height: 4px; /* Minimum height when empty */
+}
+
+/* Holiday bar slot system - ensure consistent vertical positions */
+.holiday-slot {
+  height: 16px;
+  margin-bottom: 2px;
+  position: relative;
+}
+
+/* Make sure slots are always positioned in the same order */
+.holiday-slot.slot-0 { order: 0; }
+.holiday-slot.slot-1 { order: 1; }
+.holiday-slot.slot-2 { order: 2; }
+.holiday-slot.slot-3 { order: 3; }
+.holiday-slot.slot-4 { order: 4; }
+.holiday-slot.slot-5 { order: 5; }
+.holiday-slot.slot-6 { order: 6; }
+.holiday-slot.slot-7 { order: 7; }
+.holiday-slot.slot-8 { order: 8; }
+.holiday-slot.slot-9 { order: 9; }
+
+/* Empty slots should be invisible but maintain spacing */
+.holiday-slot.empty {
+  visibility: hidden;
+}
+
+/* Holiday bar styling */
+.holiday-bar {
+  height: 16px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding-left: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  color: white;
+  font-size: 10px;
+  font-weight: 500;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.holiday-bar.single-day {
+  width: 100%;
+}
+
+/* Fixed connection styles - ensuring bars connect properly */
+.holiday-bar.span-start {
+    width: calc(100% + 5px);
+    right: -2px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    z-index: 2;
+    margin-right: -1px;
+}
+
+.holiday-bar.span-middle {
+    width: calc(100% + 9px);
+    left: -2px;
+    right: -2px;
+    border-radius: 0;
+    z-index: 1;
+    margin-left: -2px;
+    margin-right: -2px;
+}
+
+.holiday-bar.span-end {
+    width: calc(100% + 2px);
+    left: -3px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    z-index: 2;
+    margin-left: -1px;
+}
+
+.user-initials {
+  font-size: 10px;
+  font-weight: bold;
+  padding-left: 2px;
+}
+
+.comment-icon {
+  color: #ffffff;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  margin-right: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Also make sure the SVG inside the icon is properly sized */
+.comment-icon svg {
+  width: 10px;
+  height: 10px;
+  stroke-width: 3;
+}
+
+/* Tooltip Container */
+.tooltip-container {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+/* Tooltip styling */
+.tooltip {
+  position: fixed; /* Fixed positioning relative to viewport */
+  background-color: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: normal;
+  max-width: 250px;
+  z-index: 1000; /* Very high z-index */
+  pointer-events: none; /* Allow clicks to pass through */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.15s;
+}
+
+.tooltip-username {
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 4px;
+}
+
+.tooltip-comment {
+  font-style: italic;
+  opacity: 0.9;
+}
+
+/* Calendar legend */
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.legend-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+/* Fix for legend-box holiday-bar */
+.calendar-legend .legend-box.holiday-bar {
+  position: static;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  padding: 0;
+  background-color: #4285F4;
+  display: inline-block;
+  left: auto;
+  right: auto;
+}
+
+.legend-box.national-holiday {
+  background-color: rgba(40, 167, 69, 0.15);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.legend-box.weekend {
+  background-color: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.legend-box.has-comment {
+  background-color: #4285F4;
+  position: relative;
+}
+
+.legend-box.has-comment::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: white;
+  border-radius: 50%;
+}
+
+.calendar-info {
+  margin-top: var(--spacing-md);
+  color: #666;
+  text-align: center;
+  font-size: var(--font-sm);
+}
+
+.calendar-info p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+.info-icon {
+  color: var(--info-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .company-calendar-table {
+    table-layout: auto;
+  }
+  
+  .calendar-day {
+    height: 70px;
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 768px) {
+  .holiday-calendar-page {
+    padding: var(--spacing-sm);
+  }
+  
+  .month-title {
+    font-size: var(--font-lg);
+  }
+  
+  .filter-panel {
+    width: 260px;
+  }
+  
+  .calendar-day {
+    height: 60px;
+    min-width: 60px;
+  }
+  
+  .holiday-bar {
+    height: 12px;
+    font-size: 8px;
+  }
+  
+  .calendar-legend {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+    margin-left: var(--spacing-md);
+  }
+  
+  .users-legend {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+}

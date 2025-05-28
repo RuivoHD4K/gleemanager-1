@@ -4,7 +4,8 @@ import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { useToast } from '../../components/Toast/ToastContext';
 import { 
   Upload, Pencil, Trash2, Calendar, Clock, Check, 
-  AlertTriangle, X, Edit, Calendar as CalendarIcon
+  AlertTriangle, X, Edit, Calendar as CalendarIcon,
+  MessageSquare
 } from 'lucide-react';
 import "./UserDashboard.css";
 
@@ -34,6 +35,9 @@ const UserDashboard = () => {
   const [nationalHolidays, setNationalHolidays] = useState([]);
   const [isLoadingHolidays, setIsLoadingHolidays] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Comment state for holiday requests
+  const [holidayComment, setHolidayComment] = useState('');
   
   // Delete mode states
   const [deleteMode, setDeleteMode] = useState(false);
@@ -649,7 +653,7 @@ const UserDashboard = () => {
         },
         body: JSON.stringify({ 
           dates: formattedDates,
-          notes: "Requested through user dashboard" 
+          notes: holidayComment || "Requested through user dashboard" 
         })
       });
       
@@ -664,8 +668,9 @@ const UserDashboard = () => {
         fetchPendingRequests()
       ]);
       
-      // Clear selected days
+      // Clear selected days and comment
       setSelectedDays([]);
+      setHolidayComment('');
       
       toast.showSuccess("Holiday request submitted successfully");
     } catch (error) {
@@ -683,8 +688,9 @@ const UserDashboard = () => {
         daysRemaining: prev.totalDaysAllowed - prev.daysUsed - prev.daysRequested - selectedDays.length
       }));
       
-      // Clear selected days
+      // Clear selected days and comment
       setSelectedDays([]);
+      setHolidayComment('');
     } finally {
       setSubmitting(false);
     }
@@ -1002,6 +1008,27 @@ const UserDashboard = () => {
           )}
         </div>
         
+        {/* Holiday request comment field - only shown when days are selected and not in delete mode */}
+        {!deleteMode && selectedDays.length > 0 && (
+          <div className="holiday-comment-container">
+            <label htmlFor="holiday-comment" className="holiday-comment-label">
+              <MessageSquare size={16} /> Add a comment (optional):
+            </label>
+            <textarea
+              id="holiday-comment"
+              className="holiday-comment-input"
+              value={holidayComment}
+              onChange={(e) => setHolidayComment(e.target.value)}
+              placeholder="Reason for time off or additional notes..."
+              rows={3}
+              maxLength={200}
+            />
+            <div className="holiday-comment-count">
+              {holidayComment.length}/200 characters
+            </div>
+          </div>
+        )}
+        
         <div className="calendar-actions">
           {!deleteMode ? (
             <button 
@@ -1064,6 +1091,13 @@ const UserDashboard = () => {
         <div className="page-header">
           <h1>Welcome to GleeManager</h1>
           <div className="page-actions">
+            <button 
+              className="action-btn view-all-holidays-btn"
+              onClick={() => navigate('/holiday-calendar')}
+            >
+              <Calendar size={18} />
+              <span>View All Holidays</span>
+            </button>
           </div>
         </div>
         
@@ -1182,14 +1216,6 @@ const UserDashboard = () => {
             <h3>Holiday Summary</h3>
             <div className="holiday-summary">
               <div className="holiday-summary-item">
-                <Check size={24} className="holiday-icon approved" />
-                <div className="holiday-summary-content">
-                  <span className="holiday-summary-label">Days Used</span>
-                  <span className="holiday-summary-value">{holidayStats.daysUsed}</span>
-                </div>
-              </div>
-              
-              <div className="holiday-summary-item">
                 <Clock size={24} className="holiday-icon pending" />
                 <div className="holiday-summary-content">
                   <span className="holiday-summary-label">Days Pending</span>
@@ -1219,6 +1245,12 @@ const UserDashboard = () => {
                         <span className="request-date-label">Requested:</span>
                         <span className="request-date-value">{formatDateTime(request.requestDate)}</span>
                       </div>
+                      {request.notes && request.notes !== "Requested through user dashboard" && (
+                        <div className="request-notes">
+                          <span className="request-notes-label">Notes:</span>
+                          <span className="request-notes-value">{request.notes}</span>
+                        </div>
+                      )}
                       <button
                         className="cancel-request-btn"
                         onClick={() => cancelHolidayRequest(request.requestId)}
@@ -1261,4 +1293,4 @@ const UserDashboard = () => {
   );
 };
 
-export default UserDashboard;
+export default UserDashboard; 

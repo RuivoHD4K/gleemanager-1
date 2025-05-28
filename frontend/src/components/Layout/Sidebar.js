@@ -13,7 +13,9 @@ import {
   Folder,
   FileSpreadsheet,
   Building2,
-  Route
+  Route,
+  BarChart3,
+  Calendar
 } from 'lucide-react';
 
 const Sidebar = ({ userRole, isSidebarCollapsed }) => {
@@ -93,7 +95,13 @@ const Sidebar = ({ userRole, isSidebarCollapsed }) => {
   // Effect to open submenu only on initial load or route change
   useEffect(() => {
     if (!isSidebarCollapsed && hasSubmenuItems) {
-      const submenuRoutes = ['/user-management', '/project-management', '/excel-templates']; // Added excel-templates
+      const submenuRoutes = [
+        '/user-management', 
+        '/project-management', 
+        '/excel-templates',
+        '/company-management',
+        '/route-management'
+      ];
       const isSubmenuRouteActive = submenuRoutes.some(route => 
         location.pathname.startsWith(route)
       );
@@ -139,6 +147,7 @@ const Sidebar = ({ userRole, isSidebarCollapsed }) => {
             ref={submenuRef} 
             className={`dashboard-submenu ${isDashboardSubmenuOpen ? 'open' : ''} ${isClosing ? 'closing' : ''}`}
           >
+
             {userRole === 'admin' && (
             <NavLink to="/user-management" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
               <span className="nav-icon">
@@ -181,6 +190,21 @@ const Sidebar = ({ userRole, isSidebarCollapsed }) => {
 
           </div>
         )}
+        
+        {userRole === 'admin' && (
+        <NavLink to="/user-dashboard" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
+          <span className="nav-icon">
+            <BarChart3 size={iconSize} />
+          </span>
+          <span className="nav-text">User Dashboard</span>
+        </NavLink>)}
+
+        <NavLink to="/holiday-calendar" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
+          <span className="nav-icon">
+            <Calendar size={iconSize} />
+          </span>
+          <span className="nav-text">Holiday Calendar</span>
+        </NavLink>
         
         <NavLink to="/profile" className={({isActive}) => isActive ? 'nav-link active' : 'nav-link'}>
           <span className="nav-icon">

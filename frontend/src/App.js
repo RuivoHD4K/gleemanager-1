@@ -14,6 +14,7 @@ const RouteManagement = lazy(() => import("./pages/RouteManagement/RouteManageme
 const ChangePassword = lazy(() => import("./pages/ChangePassword/ChangePassword"));
 const ExcelTemplates = lazy(() => import("./pages/ExcelTemplates/ExcelTemplates"));
 const CompanyManagement = lazy(() => import("./pages/CompanyManagement/CompanyManagement"));
+const HolidayCalendar = lazy(() => import("./pages/HolidayCalendar/HolidayCalendar"));
 
 // Create a dynamic Profile component that loads CSS separately
 const Profile = lazy(() => 
@@ -269,6 +270,19 @@ function App() {
                     <Navigate to="/" replace />
                   )
                 } 
+              />
+
+              <Route 
+                path="user-dashboard" 
+                element={
+                    <UserDashboard />
+                } 
+              />
+              
+              {/* Holiday Calendar route - accessible by all users */}
+              <Route 
+                path="holiday-calendar" 
+                element={<HolidayCalendar />} 
               />
               
               {/* Add more routes as needed */}

@@ -2970,13 +2970,7 @@ else if (req.method === "GET" && req.url.match(/^\/users\/[^\/]+\/holiday-reques
       const user = userResult.Item;
       const isAdmin = user.role === "admin";
       
-      // Only allow access to own requests or admin access
-      if (currentUserId !== targetUserId && !isAdmin) {
-        res.writeHead(403, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Unauthorized to view these requests" }));
-      }
-      
-      // Fetch holiday requests for the target user
+      // Allow access to all approved holiday requests
       const params = new ScanCommand({
         TableName: "HolidayRequests",
         FilterExpression: "userId = :userId",
@@ -2987,8 +2981,26 @@ else if (req.method === "GET" && req.url.match(/^\/users\/[^\/]+\/holiday-reques
       
       const result = await dynamoDB.send(params);
       
+      // For regular users, we'll only return approved requests with limited information
+      // For admins, return all requests with full information
+      let requestsToReturn = result.Items || [];
+      
+      if (!isAdmin && currentUserId !== targetUserId) {
+        // For other users' requests, only return approved requests with limited info
+        requestsToReturn = requestsToReturn
+          .filter(req => req.status === "approved")
+          .map(req => ({
+            requestId: req.requestId,
+            userId: req.userId,
+            username: req.username,
+            dates: req.dates,
+            status: req.status,
+            notes: req.notes // Keep notes so comments are visible
+          }));
+      }
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(result.Items || []));
+      res.end(JSON.stringify(requestsToReturn));
     } catch (err) {
       console.error("Error fetching holiday requests:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
@@ -3368,22 +3380,7 @@ else if (req.method === "GET" && req.url.match(/^\/users\/[^\/]+\/holidays\/\d{4
   const currentUserId = tokenStore.get(token).userId;
   
   (async () => {
-    try {
-      // Check if current user is the user or an admin
-      if (currentUserId !== userId) {
-        const userParams = new GetCommand({
-          TableName: "Users",
-          Key: { userId: currentUserId }
-        });
-        
-        const userResult = await dynamoDB.send(userParams);
-        
-        if (!userResult.Item || userResult.Item.role !== "admin") {
-          res.writeHead(403, { "Content-Type": "application/json" });
-          return res.end(JSON.stringify({ error: "Unauthorized to view these holidays" }));
-        }
-      }
-      
+    try {      
       // Get holidays for the specified user and month
       const params = new ScanCommand({
         TableName: "UserHolidays",
