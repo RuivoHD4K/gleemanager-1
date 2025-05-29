@@ -892,7 +892,8 @@ const HolidayCalendar = () => {
       
       const holiday = slot.holiday;
       const showCommentIcon = holiday.hasComment && (slot.type === 'single-day' || slot.type === 'span-start');
- 
+      const showUsername = slot.type === 'single-day' || slot.type === 'span-start';
+
       return (
         <div key={`slot-${slot.slotIndex}-${holiday.userId}`} className={`holiday-slot slot-${slot.slotIndex}`}>
           <div 
@@ -909,6 +910,10 @@ const HolidayCalendar = () => {
                 </div>
               </CommentTooltip>
             )}
+            {showUsername && (
+              <span className="user-name">
+                {holiday.username}
+              </span>)}
           </div>
         </div>
       );
