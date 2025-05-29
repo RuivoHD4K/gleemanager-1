@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Filter, Calendar as CalendarIcon, MessageSquare, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, Calendar as CalendarIcon, MessageSquare, RefreshCw, Eye, EyeOff, Check, X } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import { useToast } from '../../components/Toast/ToastContext';
 import './HolidayCalendar.css';
@@ -69,11 +69,17 @@ const HolidayCalendar = () => {
   const [nationalHolidays, setNationalHolidays] = useState([]);
   const [userHolidays, setUserHolidays] = useState({});
   const [holidayRequests, setHolidayRequests] = useState([]);
+  const [allHolidayRequests, setAllHolidayRequests] = useState([]); // For admin panel
+  const [loadingRequests, setLoadingRequests] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [debugMode, setDebugMode] = useState(false); // Debug mode (hidden in production)
   // Add a new state to store the user holiday spans with assigned slots
   const [holidaySpans, setHolidaySpans] = useState({});
+  // New state for the preview functionality
+  const [previewedRequest, setPreviewedRequest] = useState(null);
+  const [isPreviewAnimating, setIsPreviewAnimating] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const filterRef = useRef(null);
   
   // Debug logging function
@@ -90,6 +96,20 @@ const HolidayCalendar = () => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
+  };
+
+  // Format date and time
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "N/A";
+      
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
   };
 
   // Format year-month for API (YYYY-MM)
@@ -111,6 +131,12 @@ const HolidayCalendar = () => {
     const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
     debug('Navigating to next month', newMonth);
     setCurrentMonth(newMonth);
+  };
+
+  // Check if user is admin
+  const checkUserRole = () => {
+    const userRole = localStorage.getItem("userRole");
+    setIsAdmin(userRole === "admin");
   };
 
   // Fetch all users
@@ -226,6 +252,73 @@ const HolidayCalendar = () => {
       console.error("Error fetching holiday requests:", error);
     }
   };
+
+  // Fetch all pending holiday requests for admin panel
+  const fetchAllPendingRequests = async () => {
+    if (!isAdmin) return;
+    
+    try {
+      setLoadingRequests(true);
+      const token = localStorage.getItem("authToken");
+      
+      if (!token) return;
+      
+      // Since we don't have a global endpoint for all pending requests,
+      // we need to fetch requests for each user and filter them
+      const pendingRequests = [];
+      
+      // Fetch all users first if we don't already have them
+      let usersList = users;
+      if (usersList.length === 0) {
+        try {
+          usersList = await fetchUsers();
+        } catch (error) {
+          console.error("Error fetching users for pending requests:", error);
+          throw new Error("Failed to fetch users for pending requests");
+        }
+      }
+      
+      // For each user, fetch their holiday requests
+      for (const user of usersList) {
+        try {
+          const response = await fetch(`http://localhost:5000/users/${user.userId}/holiday-requests`, {
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const userRequests = await response.json();
+            // Filter for pending requests only
+            const userPendingRequests = userRequests.filter(req => req.status === "pending");
+            
+            // Add user information to each request
+            userPendingRequests.forEach(request => {
+              pendingRequests.push({
+                ...request,
+                username: user.username || 'Unknown User',
+                email: user.email || '',
+                userDisplayName: user.username || user.email?.split('@')[0] || 'Unknown User'
+              });
+            });
+            
+            debug(`Fetched ${userPendingRequests.length} pending requests for ${user.username || user.email}`);
+          }
+        } catch (error) {
+          console.error(`Error fetching requests for user ${user.userId}:`, error);
+          // Continue with other users even if one fails
+        }
+      }
+      
+      debug('All pending holiday requests', pendingRequests);
+      setAllHolidayRequests(pendingRequests);
+    } catch (error) {
+      console.error("Error fetching all pending requests:", error);
+      toast.showError("Failed to fetch pending requests");
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
   
   // Fetch holidays for all users for the current month
   const fetchUserHolidays = async (usersList) => {
@@ -281,6 +374,114 @@ const HolidayCalendar = () => {
     }
   };
   
+  // Handle request approval
+  const handleApproveRequest = async (requestId) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+      
+      const response = await fetch(`http://localhost:5000/holiday-requests/${requestId}/approve`, {
+        method: 'POST',
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ notes: "Admin: Request approved from calendar view" })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to approve request");
+      }
+      
+      // Remove from previewed if it's being previewed
+      if (previewedRequest?.requestId === requestId) {
+        setPreviewedRequest(null);
+      }
+      
+      // Refresh the requests list
+      fetchAllPendingRequests();
+      // Refresh holidays to show the newly approved ones
+      fetchUserHolidays();
+      
+      toast.showSuccess("Holiday request approved successfully");
+    } catch (error) {
+      console.error("Error approving request:", error);
+      toast.showError(error.message || "Failed to approve request");
+    }
+  };
+  
+  // Handle request rejection
+  const handleRejectRequest = async (requestId) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+      
+      const response = await fetch(`http://localhost:5000/holiday-requests/${requestId}/reject`, {
+        method: 'POST',
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ notes: "Admin: Request rejected from calendar view" })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to reject request");
+      }
+      
+      // Remove from previewed if it's being previewed
+      if (previewedRequest?.requestId === requestId) {
+        setPreviewedRequest(null);
+      }
+      
+      // Refresh the requests list
+      fetchAllPendingRequests();
+      
+      toast.showSuccess("Holiday request rejected successfully");
+    } catch (error) {
+      console.error("Error rejecting request:", error);
+      toast.showError(error.message || "Failed to reject request");
+    }
+  };
+  
+  // Toggle preview of a holiday request
+  const togglePreviewRequest = (request) => {
+    // If the same request is already being previewed, turn off preview
+    if (previewedRequest && previewedRequest.requestId === request.requestId) {
+      setIsPreviewAnimating(false);
+      setTimeout(() => {
+        setPreviewedRequest(null);
+      }, 300); // Match the CSS transition duration
+    } else {
+      // If a different request is being previewed, hide it first
+      if (previewedRequest) {
+        setIsPreviewAnimating(false);
+        setTimeout(() => {
+          setPreviewedRequest(request);
+          // Small delay before starting the fade-in animation
+          setTimeout(() => {
+            setIsPreviewAnimating(true);
+          }, 50);
+        }, 300); // Match the CSS transition duration
+      } else {
+        // No previous preview, just show the new one
+        setPreviewedRequest(request);
+        // Small delay before starting the fade-in animation
+        setTimeout(() => {
+          setIsPreviewAnimating(true);
+        }, 50);
+      }
+    }
+  };
+  
   // Load all necessary data
   const loadData = async (showLoading = true) => {
     if (showLoading) {
@@ -293,6 +494,9 @@ const HolidayCalendar = () => {
         month: currentMonth.getMonth() + 1
       });
       
+      // Check if user is admin
+      checkUserRole();
+      
       // Fetch all users first
       const fetchedUsers = await fetchUsers();
       
@@ -300,7 +504,8 @@ const HolidayCalendar = () => {
       await Promise.all([
         fetchNationalHolidays(),
         fetchUserHolidays(fetchedUsers),
-        fetchHolidayRequests(fetchedUsers)
+        fetchHolidayRequests(fetchedUsers),
+        fetchAllPendingRequests() // For admin panel
       ]);
       
       debug('Data loading complete');
@@ -385,6 +590,44 @@ const HolidayCalendar = () => {
     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     const dayOfWeek = date.getDay();
     return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
+  };
+
+  // Check if a day is in the previewed request and return its position (start, middle, end, or single)
+  const getPreviewDayType = (day) => {
+    if (!previewedRequest) return null;
+    
+    const year = currentMonth.getFullYear();
+    const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    const dateStr = `${year}-${month}-${dayStr}`;
+    
+    if (!previewedRequest.dates.includes(dateStr)) return null;
+    
+    // Get all days in current month from the previewed request
+    const daysInCurrentMonth = previewedRequest.dates
+      .filter(date => date.startsWith(`${year}-${month}-`))
+      .map(date => parseInt(date.substring(8, 10), 10))
+      .sort((a, b) => a - b);
+    
+    if (daysInCurrentMonth.length === 1) {
+      return 'single-day';
+    }
+    
+    // Find the position of this day in the sequence
+    const index = daysInCurrentMonth.indexOf(day);
+    if (index === 0) {
+      // Check if the previous day is the last day of previous month
+      return 'span-start';
+    } else if (index === daysInCurrentMonth.length - 1) {
+      return 'span-end';
+    } else {
+      // Check if this day follows the previous day in sequence
+      if (daysInCurrentMonth[index] === daysInCurrentMonth[index - 1] + 1) {
+        return 'span-middle';
+      } else {
+        return 'span-start'; // Start of a new sequence
+      }
+    }
   };
   
   // Process the holiday data to identify spans and assign slots
@@ -496,8 +739,102 @@ const HolidayCalendar = () => {
       spans[user.userId] = userSpans;
     }
     
+    // Add preview spans if there's a previewed request
+    if (previewedRequest && isPreviewAnimating) {
+      processPreviewSpans(spans, usedSlots);
+    }
+    
     debug('Processed holiday spans', spans);
     setHolidaySpans(spans);
+  };
+  
+  // Process preview spans and add them to the holiday spans
+  const processPreviewSpans = (spans, usedSlots) => {
+    if (!previewedRequest) return;
+    
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const monthStr = String(month + 1).padStart(2, '0');
+    
+    // Filter dates in the current month
+    const daysInMonth = previewedRequest.dates
+      .filter(date => date.startsWith(`${year}-${monthStr}-`))
+      .map(date => parseInt(date.substring(8, 10), 10))
+      .sort((a, b) => a - b);
+    
+    if (daysInMonth.length === 0) return;
+    
+    // Find continuous spans in the preview
+    const previewSpans = [];
+    let currentSpan = { start: daysInMonth[0], end: daysInMonth[0], days: [daysInMonth[0]] };
+    
+    for (let i = 1; i < daysInMonth.length; i++) {
+      const day = daysInMonth[i];
+      const prevDay = daysInMonth[i - 1];
+      
+      if (day === prevDay + 1) {
+        // Continue current span
+        currentSpan.end = day;
+        currentSpan.days.push(day);
+      } else {
+        // End current span and start a new one
+        previewSpans.push({ ...currentSpan });
+        currentSpan = { start: day, end: day, days: [day] };
+      }
+    }
+    
+    // Add the last span
+    previewSpans.push({ ...currentSpan });
+    
+    // Find an available slot for the preview
+    let previewSlot = -1;
+    let slotNumber = 0;
+    
+    while (previewSlot === -1 && slotNumber < 10) {
+      let isSlotAvailable = true;
+      
+      // Check if this slot is available for all preview spans
+      for (const span of previewSpans) {
+        for (let day = span.start; day <= span.end; day++) {
+          if (usedSlots[day].has(slotNumber)) {
+            isSlotAvailable = false;
+            break;
+          }
+        }
+        if (!isSlotAvailable) break;
+      }
+      
+      if (isSlotAvailable) {
+        previewSlot = slotNumber;
+        
+        // Mark slot as used
+        for (const span of previewSpans) {
+          for (let day = span.start; day <= span.end; day++) {
+            usedSlots[day].add(slotNumber);
+          }
+        }
+      } else {
+        slotNumber++;
+      }
+    }
+    
+    // If no slot found, use the next available slot
+    if (previewSlot === -1) {
+      previewSlot = slotNumber;
+    }
+    
+    // Create the preview spans with all necessary information
+    const userId = 'preview-' + previewedRequest.requestId;
+    spans[userId] = previewSpans.map(span => ({
+      ...span,
+      slot: previewSlot,
+      userId,
+      username: previewedRequest.userDisplayName,
+      color: '#ffc107', // Yellow color for preview
+      hasComment: !!previewedRequest.notes && previewedRequest.notes !== "Requested through user dashboard",
+      commentText: previewedRequest.notes,
+      isPreview: true
+    }));
   };
   
   // Close the filter panel when clicking outside
@@ -534,6 +871,8 @@ const HolidayCalendar = () => {
       setHolidayRequests([]);
       setNationalHolidays([]);
       setHolidaySpans({});
+      setPreviewedRequest(null);
+      setIsPreviewAnimating(false);
       
       // Determine which users to fetch data for
       const usersToFetch = selectedUsers.length > 0 ? selectedUsers : users;
@@ -542,7 +881,8 @@ const HolidayCalendar = () => {
       Promise.all([
         fetchNationalHolidays(),
         fetchUserHolidays(usersToFetch),
-        fetchHolidayRequests(usersToFetch)
+        fetchHolidayRequests(usersToFetch),
+        fetchAllPendingRequests()
       ]).catch(error => {
         console.error("Error updating data for month change:", error);
         toast.showError("Failed to update calendar data");
@@ -550,12 +890,13 @@ const HolidayCalendar = () => {
     }
   }, [currentMonth, selectedUsers, users]); // Added users to dependencies
   
-  // Process holiday spans when user holidays or requests change
+  // Update when previewed request changes
   useEffect(() => {
+    // Only process spans if we have holiday data
     if (Object.keys(userHolidays).length > 0) {
       processHolidaySpans();
     }
-  }, [userHolidays, holidayRequests]);
+  }, [userHolidays, holidayRequests, previewedRequest, isPreviewAnimating]);
   
   // Update filtered users when search term changes
   useEffect(() => {
@@ -705,6 +1046,12 @@ const HolidayCalendar = () => {
             <div className="legend-box has-comment"></div>
             <span>Has Comment</span>
           </div>
+          {isAdmin && (
+            <div className="legend-item">
+              <div className="legend-box preview-day"></div>
+              <span>Preview Request</span>
+            </div>
+          )}
         </div>
         
         <div className="calendar-info">
@@ -891,14 +1238,15 @@ const HolidayCalendar = () => {
       }
       
       const holiday = slot.holiday;
+      const isPreview = holiday.isPreview;
       const showCommentIcon = holiday.hasComment && (slot.type === 'single-day' || slot.type === 'span-start');
       const showUsername = slot.type === 'single-day' || slot.type === 'span-start';
 
       return (
-        <div key={`slot-${slot.slotIndex}-${holiday.userId}`} className={`holiday-slot slot-${slot.slotIndex}`}>
+        <div key={`slot-${slot.slotIndex}-${isPreview ? 'preview' : holiday.userId}`} className={`holiday-slot slot-${slot.slotIndex}`}>
           <div 
-            className={`holiday-bar ${slot.type}`}
-            style={{ backgroundColor: holiday.color }}
+            className={`holiday-bar ${slot.type} ${isPreview ? 'preview-bar' : ''}`}
+            style={{ backgroundColor: isPreview ? '#ffc107' : holiday.color }}
           >
             {showCommentIcon && (
               <CommentTooltip 
@@ -918,6 +1266,100 @@ const HolidayCalendar = () => {
         </div>
       );
     });
+  };
+  
+  // Render the holiday requests panel for admins
+  const renderHolidayRequestsPanel = () => {
+    if (!isAdmin) return null;
+    
+    return (
+      <div className="holiday-requests-panel">
+        <div className="panel-header">
+          <h3>Pending Holiday Requests</h3>
+          <button 
+            className="refresh-btn" 
+            onClick={fetchAllPendingRequests}
+            title="Refresh Requests"
+          >
+            <RefreshCw size={18} />
+          </button>
+        </div>
+        
+        {loadingRequests ? (
+          <div className="panel-loading">
+            <div className="panel-spinner"></div>
+            <p>Loading requests...</p>
+          </div>
+        ) : allHolidayRequests.length === 0 ? (
+          <div className="no-pending-requests">
+            <p>No pending holiday requests</p>
+          </div>
+        ) : (
+          <div className="holiday-requests-list">
+            {allHolidayRequests.map(request => (
+              <div key={request.requestId} className="holiday-request-card">
+                <div className="request-header">
+                  <div className="requester-info">
+                    <span className="username">{request.userDisplayName}</span>
+                    <span className="email">{request.email}</span>
+                  </div>
+                  <span className="request-time">{formatDateTime(request.requestDate)}</span>
+                </div>
+                
+                <div className="requested-dates">
+                  <div className="dates-list">
+                    {request.dates.map((date, index) => (
+                      <span key={index} className="date-badge">{formatDate(date)}</span>
+                    ))}
+                  </div>
+                  <span className="request-days-count">{request.dates.length} {request.dates.length === 1 ? 'day' : 'days'}</span>
+                </div>
+                
+                {request.notes && request.notes !== "Requested through user dashboard" && (
+                  <div className="request-notes">
+                    <span className="notes-label">Notes:</span>
+                    <p>{request.notes}</p>
+                  </div>
+                )}
+                
+                <div className="request-actions">
+                  <button 
+                    className={`action-btn preview-btn ${previewedRequest?.requestId === request.requestId ? 'active' : ''}`} 
+                    onClick={() => togglePreviewRequest(request)}
+                  >
+                    {previewedRequest?.requestId === request.requestId ? (
+                      <>
+                        <EyeOff size={16} />
+                        <span>Hide Preview</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye size={16} />
+                        <span>Preview</span>
+                      </>
+                    )}
+                  </button>
+                  <button 
+                    className="action-btn approve-btn" 
+                    onClick={() => handleApproveRequest(request.requestId)}
+                  >
+                    <Check size={16} />
+                    <span>Approve</span>
+                  </button>
+                  <button 
+                    className="action-btn reject-btn" 
+                    onClick={() => handleRejectRequest(request.requestId)}
+                  >
+                    <X size={16} />
+                    <span>Reject</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
   
   // Toggle debug mode (hidden in production)
@@ -959,8 +1401,12 @@ const HolidayCalendar = () => {
           </div>
         </div>
         
-        <div className="calendar-container">
-          {renderCalendar()}
+        <div className={`calendar-layout ${isAdmin ? 'with-admin-panel' : ''}`}>
+          <div className="calendar-container">
+            {renderCalendar()}
+          </div>
+          
+          {isAdmin && renderHolidayRequestsPanel()}
         </div>
       </div>
     </LoadingSpinner>
