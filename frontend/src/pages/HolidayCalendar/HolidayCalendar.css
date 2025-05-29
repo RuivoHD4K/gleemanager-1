@@ -1,23 +1,10 @@
+
+
 /* HolidayCalendar.css */
 
 .holiday-calendar-page {
   width: 100%;
   padding: var(--spacing-md);
-}
-
-/* New layout for admin view with side panel */
-.calendar-layout {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xl);
-}
-
-.calendar-layout.with-admin-panel {
-  flex-direction: row;
-}
-
-.calendar-layout.with-admin-panel .calendar-container {
-  flex: 2;
 }
 
 .company-calendar-container {
@@ -293,12 +280,6 @@
   background-color: rgba(40, 167, 69, 0.15);
 }
 
-/* New preview day style with transition */
-.preview-day {
-  background-color: rgba(255, 193, 7, 0.2);
-  transition: background-color 0.3s ease;
-}
-
 .day-number {
   text-align: right;
   padding: 2px 4px;
@@ -540,11 +521,6 @@
   border-radius: 50%;
 }
 
-.legend-box.preview-day {
-  background-color: rgba(255, 193, 7, 0.2);
-  border: 1px solid rgba(255, 193, 7, 0.4);
-}
-
 .calendar-info {
   margin-top: var(--spacing-md);
   color: #666;
@@ -563,220 +539,7 @@
   color: var(--info-color);
 }
 
-/* Holiday Requests Panel Styles */
-.holiday-requests-panel {
-  flex: 1;
-  background-color: white;
-  border-radius: var(--radius-md);
-  box-shadow: var(--card-shadow);
-  padding: var(--spacing-md);
-  max-width: 400px;
-  min-width: 350px;
-  display: flex;
-  flex-direction: column;
-  height: fit-content;
-  max-height: 800px;
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-md);
-  padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--light-gray);
-}
-
-.panel-header h3 {
-  margin: 0;
-  font-size: var(--font-lg);
-  color: var(--text-color);
-}
-
-.panel-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  gap: var(--spacing-md);
-}
-
-.panel-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(0, 119, 204, 0.2);
-  border-radius: 50%;
-  border-top-color: var(--info-color);
-  animation: spin 1s linear infinite;
-}
-
-.no-pending-requests {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: #777;
-  font-style: italic;
-}
-
-.holiday-requests-list {
-  overflow-y: auto;
-  max-height: 700px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  padding-right: var(--spacing-xs);
-}
-
-.holiday-request-card {
-  background-color: var(--gray-bg);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.holiday-request-card:hover {
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.request-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.requester-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.request-time {
-  font-size: var(--font-xs);
-  color: #777;
-}
-
-.requested-dates {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-sm);
-  background-color: white;
-  border-radius: var(--radius-sm);
-}
-
-.dates-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-  flex: 1;
-}
-
-.date-badge {
-  background-color: rgba(0, 119, 204, 0.1);
-  color: var(--info-color);
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: var(--font-xs);
-  font-weight: 500;
-}
-
-.request-days-count {
-  font-size: var(--font-xs);
-  font-weight: 500;
-  color: #666;
-  white-space: nowrap;
-}
-
-.request-notes {
-  font-size: var(--font-xs);
-  color: #666;
-  background-color: white;
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-sm);
-}
-
-.notes-label {
-  font-weight: 500;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.request-actions {
-  display: flex;
-  gap: var(--spacing-xs);
-  margin-top: var(--spacing-xs);
-}
-
-.action-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-xs);
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: background-color 0.2s ease;
-}
-
-.preview-btn {
-  background-color: rgba(108, 117, 125, 0.15);
-  color: #6c757d;
-}
-
-.preview-btn:hover {
-  background-color: rgba(108, 117, 125, 0.25);
-}
-
-.preview-btn.active {
-  background-color: rgba(255, 193, 7, 0.2);
-  color: #856404;
-}
-
-.approve-btn {
-  background-color: rgba(40, 167, 69, 0.15);
-  color: var(--success-color);
-}
-
-.approve-btn:hover {
-  background-color: rgba(40, 167, 69, 0.25);
-}
-
-.reject-btn {
-  background-color: rgba(220, 53, 69, 0.15);
-  color: var(--danger-color);
-}
-
-.reject-btn:hover {
-  background-color: rgba(220, 53, 69, 0.25);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* Responsive adjustments */
-@media (max-width: 1200px) {
-  .calendar-layout.with-admin-panel {
-    flex-direction: column;
-  }
-  
-  .holiday-requests-panel {
-    max-width: none;
-    width: 100%;
-  }
-}
-
 @media (max-width: 992px) {
   .company-calendar-table {
     table-layout: auto;
