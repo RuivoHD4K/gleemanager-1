@@ -1,66 +1,66 @@
-/* UserDashboard.css - Complete rewrite */
+/* UserDashboard.css - No conflicts with App.css */
 
 /* User dashboard container */
-.user-dashboard {
+.user-dash-container {
   width: 100%;
 }
 
 /* User dashboard grid system */
-.user-dashboard .six-column-grid {
+.user-dash-six-column-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-xl);
 }
 
-/* Grid span classes with user-dashboard prefix for specificity */
-.user-dashboard .grid-span-1 {
+/* Grid span classes with user-dash prefix for specificity */
+.user-dash-grid-span-1 {
   grid-column: span 1;
 }
 
-.user-dashboard .grid-span-2 {
+.user-dash-grid-span-2 {
   grid-column: span 2;
 }
 
-.user-dashboard .grid-span-3 {
+.user-dash-grid-span-3 {
   grid-column: span 3;
 }
 
-.user-dashboard .grid-span-4 {
+.user-dash-grid-span-4 {
   grid-column: span 4;
 }
 
-.user-dashboard .grid-span-6 {
+.user-dash-grid-span-6 {
   grid-column: span 6;
 }
 
 /* Holiday Calendar Styles */
-.calendar-description {
+.user-dash-calendar-description {
   margin-bottom: var(--spacing-md);
   color: #666;
   font-size: var(--font-sm);
 }
 
-.calendar-container {
+.user-dash-calendar-container {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
 }
 
-.calendar-header {
+.user-dash-calendar-header {
   display: flex;
   align-items: center;
   margin-bottom: var(--spacing-sm);
 }
 
-.calendar-header h4 {
+.user-dash-calendar-header h4 {
   flex: 1;
   font-size: var(--font-lg);
   margin: 0;
   text-align: center;
 }
 
-.month-nav-btn {
+.user-dash-month-nav-btn {
   background-color: var(--gray-bg);
   border: none;
   width: 32px;
@@ -74,11 +74,11 @@
   transition: var(--transition);
 }
 
-.month-nav-btn:hover {
+.user-dash-month-nav-btn:hover {
   background-color: var(--light-gray);
 }
 
-.delete-mode-toggle {
+.user-dash-delete-mode-toggle {
   background-color: var(--gray-bg);
   border: none;
   width: 32px;
@@ -92,23 +92,23 @@
   transition: var(--transition);
 }
 
-.delete-mode-toggle:hover {
+.user-dash-delete-mode-toggle:hover {
   background-color: var(--light-gray);
   color: var(--danger-color);
 }
 
-.delete-mode-toggle.active {
+.user-dash-delete-mode-toggle.active {
   background-color: rgba(220, 53, 69, 0.15);
   color: var(--danger-color);
 }
 
-.calendar-table {
+.user-dash-calendar-table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 }
 
-.calendar-table th {
+.user-dash-calendar-table th {
   padding: var(--spacing-sm);
   text-align: center;
   font-weight: 500;
@@ -116,7 +116,7 @@
   border-bottom: 1px solid var(--light-gray);
 }
 
-.calendar-table td {
+.user-dash-calendar-table td {
   height: 38px;
   text-align: center;
   padding: 0;
@@ -127,34 +127,34 @@
   transition: background-color 0.2s ease;
 }
 
-.calendar-table td:hover:not(.empty-day):not(.national-holiday):not(.approved-holiday):not(.pending-approval) {
+.user-dash-calendar-table td:hover:not(.user-dash-empty-day):not(.user-dash-national-holiday):not(.user-dash-approved-holiday):not(.user-dash-pending-approval) {
   background-color: rgba(0, 119, 204, 0.1);
 }
 
-.empty-day {
+.user-dash-empty-day {
   background-color: #f9f9f9;
   cursor: default;
 }
 
 /* Calendar day states */
-.selected-day {
+.user-dash-selected-day {
   background-color: rgba(0, 119, 204, 0.2);
   font-weight: 500;
 }
 
-.pending-approval {
+.user-dash-pending-approval {
   background-color: rgba(255, 193, 7, 0.2);
   font-weight: 500;
   cursor: default;
 }
 
-.approved-holiday {
+.user-dash-approved-holiday {
   background-color: rgba(40, 167, 69, 0.2);
   font-weight: 500;
   cursor: default;
 }
 
-.national-holiday {
+.user-dash-national-holiday {
   background-color: rgba(40, 167, 69, 0.35);
   background-image: repeating-linear-gradient(
     45deg,
@@ -168,45 +168,43 @@
   cursor: default;
 }
 
-
-
-.weekend-day {
+.user-dash-weekend-day {
   background-color: rgba(0, 0, 0, 0.05);
   color: #999;
   cursor: not-allowed !important;
 }
 
-.holiday-deletable {
+.user-dash-holiday-deletable {
   background-color: rgba(40, 167, 69, 0.2);
   font-weight: 500;
   cursor: pointer;
   position: relative;
 }
 
-.holiday-deletable:hover {
+.user-dash-holiday-deletable:hover {
   background-color: rgba(220, 53, 69, 0.15);
 }
 
-.delete-selected {
+.user-dash-delete-selected {
   background-color: rgba(220, 53, 69, 0.25);
   font-weight: 500;
   cursor: pointer;
   position: relative;
 }
 
-.delete-selected:hover {
+.user-dash-delete-selected:hover {
   background-color: rgba(220, 53, 69, 0.35);
 }
 
 /* Holiday comment field styles */
-.holiday-comment-container {
+.user-dash-holiday-comment-container {
   background-color: var(--gray-bg);
   border-radius: var(--radius-sm);
   padding: var(--spacing-md);
   margin-top: var(--spacing-sm);
 }
 
-.holiday-comment-label {
+.user-dash-holiday-comment-label {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -215,7 +213,7 @@
   color: var(--text-color);
 }
 
-.holiday-comment-input {
+.user-dash-holiday-comment-input {
   width: 100%;
   padding: var(--spacing-sm);
   border: 1px solid var(--light-gray);
@@ -228,13 +226,13 @@
   transition: var(--transition-fast);
 }
 
-.holiday-comment-input:focus {
+.user-dash-holiday-comment-input:focus {
   outline: none;
   border-color: var(--primary-light);
   box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.1);
 }
 
-.holiday-comment-count {
+.user-dash-holiday-comment-count {
   text-align: right;
   margin-top: var(--spacing-xs);
   font-size: var(--font-xs);
@@ -242,7 +240,7 @@
 }
 
 /* Calendar Legend */
-.calendar-legend {
+.user-dash-calendar-legend {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-md);
@@ -250,34 +248,34 @@
   justify-content: center;
 }
 
-.legend-item {
+.user-dash-legend-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
 }
 
-.legend-box {
+.user-dash-legend-box {
   width: 16px;
   height: 16px;
   border-radius: 4px;
 }
 
-.legend-box.selected-day {
+.user-dash-legend-box.user-dash-selected-day {
   background-color: rgba(0, 119, 204, 0.2);
   border: 1px solid rgba(0, 119, 204, 0.3);
 }
 
-.legend-box.pending-approval {
+.user-dash-legend-box.user-dash-pending-approval {
   background-color: rgba(255, 193, 7, 0.2);
   border: 1px solid rgba(255, 193, 7, 0.3);
 }
 
-.legend-box.approved-holiday {
+.user-dash-legend-box.user-dash-approved-holiday {
   background-color: rgba(40, 167, 69, 0.2);
   border: 1px solid rgba(40, 167, 69, 0.3);
 }
 
-.legend-box.national-holiday {
+.user-dash-legend-box.user-dash-national-holiday {
   background-color: rgba(40, 167, 69, 0.35);
   background-image: repeating-linear-gradient(
     45deg,
@@ -289,23 +287,23 @@
   border: 2px solid rgba(85, 172, 105, 0.8) !important;
 }
 
-.legend-box.holiday-deletable {
+.user-dash-legend-box.user-dash-holiday-deletable {
   background-color: rgba(40, 167, 69, 0.2);
   border: 1px solid rgba(40, 167, 69, 0.3);
 }
 
-.legend-box.delete-selected {
+.user-dash-legend-box.user-dash-delete-selected {
   background-color: rgba(220, 53, 69, 0.25);
   border: 1px solid rgba(220, 53, 69, 0.4);
 }
 
-.calendar-actions {
+.user-dash-calendar-actions {
   margin-top: var(--spacing-md);
   display: flex;
   justify-content: center;
 }
 
-.delete-mode-help {
+.user-dash-delete-mode-help {
   margin-top: var(--spacing-sm);
   font-size: var(--font-sm);
   color: #666;
@@ -314,7 +312,7 @@
 }
 
 /* View all holidays button */
-.view-all-holidays-btn {
+.user-dash-view-all-holidays-btn {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -328,19 +326,19 @@
   font-weight: 500;
 }
 
-.view-all-holidays-btn:hover {
+.user-dash-view-all-holidays-btn:hover {
   background-color: #0055a3;
 }
 
 /* Holiday Summary Card */
-.holiday-summary {
+.user-dash-holiday-summary {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
 }
 
-.holiday-summary-item {
+.user-dash-holiday-summary-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -349,43 +347,43 @@
   border-radius: var(--radius-sm);
 }
 
-.holiday-icon {
+.user-dash-holiday-icon {
   color: var(--primary-color);
 }
 
-.holiday-icon.approved {
+.user-dash-holiday-icon.approved {
   color: var(--success-color);
 }
 
-.holiday-icon.pending {
+.user-dash-holiday-icon.pending {
   color: var(--warning-color);
 }
 
-.holiday-icon.remaining {
+.user-dash-holiday-icon.remaining {
   color: var(--info-color);
 }
 
-.holiday-summary-content {
+.user-dash-holiday-summary-content {
   display: flex;
   flex-direction: column;
 }
 
-.holiday-summary-label {
+.user-dash-holiday-summary-label {
   font-size: var(--font-xs);
   color: #666;
 }
 
-.holiday-summary-value {
+.user-dash-holiday-summary-value {
   font-size: var(--font-lg);
   font-weight: 600;
 }
 
 /* Pending Requests Section */
-.pending-requests-section {
+.user-dash-pending-requests-section {
   margin-top: var(--spacing-md);
 }
 
-.pending-requests-section h4 {
+.user-dash-pending-requests-section h4 {
   font-size: var(--font-base);
   color: var(--text-color);
   margin-bottom: var(--spacing-sm);
@@ -393,14 +391,14 @@
   border-bottom: 1px solid var(--light-gray);
 }
 
-.no-pending-requests-message {
+.user-dash-no-pending-requests-message {
   color: #666;
   font-style: italic;
   padding: var(--spacing-sm) 0;
   text-align: center;
 }
 
-.pending-requests-list {
+.user-dash-pending-requests-list {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -408,7 +406,7 @@
   overflow-y: auto;
 }
 
-.pending-request-item {
+.user-dash-pending-request-item {
   background-color: var(--gray-bg);
   border-radius: var(--radius-sm);
   padding: var(--spacing-sm);
@@ -416,30 +414,30 @@
   position: relative;
 }
 
-.request-dates {
+.user-dash-request-dates {
   margin-bottom: var(--spacing-xs);
 }
 
-.request-dates-label {
+.user-dash-request-dates-label {
   font-weight: 500;
   margin-right: var(--spacing-xs);
   font-size: var(--font-sm);
 }
 
-.request-dates-value {
+.user-dash-request-dates-value {
   font-size: var(--font-sm);
 }
 
-.request-date {
+.user-dash-request-date {
   font-size: var(--font-xs);
   color: #666;
 }
 
-.request-date-label {
+.user-dash-request-date-label {
   margin-right: var(--spacing-xs);
 }
 
-.request-notes {
+.user-dash-request-notes {
   font-size: var(--font-xs);
   color: #666;
   margin-top: var(--spacing-xs);
@@ -448,12 +446,12 @@
   font-style: italic;
 }
 
-.request-notes-label {
+.user-dash-request-notes-label {
   margin-right: var(--spacing-xs);
   font-weight: 500;
 }
 
-.cancel-request-btn {
+.user-dash-cancel-request-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -470,26 +468,26 @@
   transition: background-color 0.2s ease;
 }
 
-.cancel-request-btn:hover {
+.user-dash-cancel-request-btn:hover {
   background-color: rgba(220, 53, 69, 0.2);
 }
 
-.cancel-request-btn:disabled {
+.user-dash-cancel-request-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.cancel-loading {
+.user-dash-cancel-loading {
   font-style: italic;
 }
 
 /* Coming Soon Placeholder */
-.coming-soon-message {
+.user-dash-coming-soon-message {
   margin-bottom: var(--spacing-md);
   color: #666;
 }
 
-.placeholder-icon {
+.user-dash-placeholder-icon {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -500,12 +498,12 @@
 }
 
 /* Signature specific styles */
-.signature-card {
+.user-dash-signature-card {
   display: flex;
   flex-direction: column;
 }
 
-.signature-container {
+.user-dash-signature-container {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -516,7 +514,7 @@
   position: relative;
 }
 
-.signature-image-container {
+.user-dash-signature-image-container {
   width: 100%;
   height: 180px;
   position: relative;
@@ -528,13 +526,13 @@
   overflow: hidden;
 }
 
-.signature-image {
+.user-dash-signature-image {
   max-width: 100%;
   max-height: 150px;
   object-fit: contain;
 }
 
-.signature-actions {
+.user-dash-signature-actions {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -544,11 +542,11 @@
   transition: opacity 0.2s ease;
 }
 
-.signature-image-container:hover .signature-actions {
+.user-dash-signature-image-container:hover .user-dash-signature-actions {
   opacity: 1;
 }
 
-.signature-action-btn {
+.user-dash-signature-action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -565,17 +563,17 @@
   padding: 0 !important;
 }
 
-.signature-action-btn.edit-btn:hover {
+.user-dash-signature-action-btn.edit-btn:hover {
   background-color: var(--primary-light);
   color: white;
 }
 
-.signature-action-btn.delete-btn:hover {
+.user-dash-signature-action-btn.delete-btn:hover {
   background-color: var(--danger-color);
   color: white;
 }
 
-.signature-upload {
+.user-dash-signature-upload {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -583,12 +581,12 @@
   text-align: center;
 }
 
-.signature-upload p {
+.user-dash-signature-upload p {
   margin: 0;
   color: #666;
 }
 
-.signature-upload-btn {
+.user-dash-signature-upload-btn {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -601,16 +599,16 @@
   font-weight: 600;
 }
 
-.signature-upload-btn:hover {
+.user-dash-signature-upload-btn:hover {
   background-color: var(--primary-dark);
 }
 
-.signature-upload-help {
+.user-dash-signature-upload-help {
   font-size: var(--font-sm);
   color: #888;
 }
 
-.signature-loading {
+.user-dash-signature-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -618,7 +616,7 @@
   min-height: 150px;
 }
 
-.signature-spinner {
+.user-dash-signature-spinner {
   width: 40px;
   height: 40px;
   border: 3px solid rgba(248, 84, 68, 0.3);
@@ -629,7 +627,7 @@
 }
 
 /* Button styles */
-.submit-btn {
+.user-dash-submit-btn {
   background-color: var(--info-color);
   color: white;
   border: none;
@@ -642,11 +640,11 @@
   white-space: nowrap;
 }
 
-.submit-btn:hover {
+.user-dash-submit-btn:hover {
   background-color: #005fa3;
 }
 
-.delete-btn {
+.user-dash-delete-btn {
   background-color: var(--danger-color);
   color: white;
   border: none;
@@ -659,11 +657,11 @@
   white-space: nowrap;
 }
 
-.delete-btn:hover {
+.user-dash-delete-btn:hover {
   background-color: #c82333;
 }
 
-.action-btn {
+.user-dash-action-btn {
   flex: 1;
   display: flex;
   align-items: center;
@@ -677,13 +675,13 @@
   border: none;
 }
 
-.action-btn:disabled {
+.user-dash-action-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
 /* Upload progress styles */
-.upload-progress-container {
+.user-dash-upload-progress-container {
   width: 200px;
   height: 10px;
   background-color: var(--light-gray);
@@ -693,13 +691,13 @@
   position: relative;
 }
 
-.upload-progress-bar {
+.user-dash-upload-progress-bar {
   height: 100%;
   background-color: var(--primary-color);
   transition: width 0.3s ease;
 }
 
-.upload-progress-text {
+.user-dash-upload-progress-text {
   position: absolute;
   top: -18px;
   left: 0;
@@ -709,39 +707,32 @@
   color: #666;
 }
 
-/* Animations */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* Dashboard stats */
-.stats-content {
+.user-dash-stats-content {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: var(--spacing-md);
 }
 
-.stat-item {
+.user-dash-stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
 }
 
-.stat-label {
+.user-dash-stat-label {
   font-size: 0.9rem;
   color: #666;
 }
 
-.stat-value {
+.user-dash-stat-value {
   font-size: 1.4rem;
   font-weight: bold;
   color: var(--primary-dark);
 }
 
-.status-indicator {
+.user-dash-status-indicator {
   display: inline-block;
   width: 10px;
   height: 10px;
@@ -749,61 +740,61 @@
   margin-right: 8px;
 }
 
-.status-indicator.online {
+.user-dash-status-indicator.online {
   background-color: var(--success-color);
   box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
 }
 
-.status-indicator.offline {
+.user-dash-status-indicator.offline {
   background-color: #aaa;
 }
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
-  .user-dashboard .six-column-grid {
+  .user-dash-six-column-grid {
     grid-template-columns: repeat(6, 1fr);
   }
   
-  .holiday-summary-item {
+  .user-dash-holiday-summary-item {
     flex-direction: row;
   }
 }
 
 @media (max-width: 992px) {
-  .user-dashboard .six-column-grid {
+  .user-dash-six-column-grid {
     grid-template-columns: repeat(3, 1fr);
   }
   
-  .user-dashboard .grid-span-2, 
-  .user-dashboard .grid-span-3 {
+  .user-dash-grid-span-2, 
+  .user-dash-grid-span-3 {
     grid-column: span 3;
   }
 }
 
 @media (max-width: 768px) {
-  .user-dashboard .six-column-grid {
+  .user-dash-six-column-grid {
     grid-template-columns: 1fr;
   }
   
-  .user-dashboard .grid-span-1,
-  .user-dashboard .grid-span-2,
-  .user-dashboard .grid-span-3,
-  .user-dashboard .grid-span-4 {
+  .user-dash-grid-span-1,
+  .user-dash-grid-span-2,
+  .user-dash-grid-span-3,
+  .user-dash-grid-span-4 {
     grid-column: 1 / -1; /* Take full width on smaller screens */
   }
   
-  .calendar-table td {
+  .user-dash-calendar-table td {
     height: 32px;
     font-size: 0.9rem;
   }
   
-  .calendar-legend {
+  .user-dash-calendar-legend {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-xs);
   }
   
-  .signature-actions {
+  .user-dash-signature-actions {
     opacity: 1; /* Always show on mobile */
   }
 }

@@ -8,6 +8,12 @@ const path = require("path");
 const busboy = require('busboy'); // You'll need to install this: npm install busboy
 const MAX_ACTIVITIES = 50;
 const activityLog = [];
+const SESSION_FILE_PATH = path.join(__dirname, "sessions.json");
+const onlineUsers = new Map();
+let tokenStore = new Map();
+
+
+// ## FUNCTIONS ##
 
 // Encryption functions
 function generateSalt() {
@@ -33,21 +39,17 @@ function formatDateTime(dateString) {
   
   let date;
   
-  // If the dateString is already in DD/MM/YYYY format, we need to parse it correctly
   if (typeof dateString === 'string' && dateString.includes('/')) {
     // Check if it's in DD/MM/YYYY HH:MM format
     const dateTimeParts = dateString.split(' ');
     if (dateTimeParts.length >= 1) {
       const datePart = dateTimeParts[0];
       const timePart = dateTimeParts[1] || '00:00';
-      
-      // Parse DD/MM/YYYY
+
       const [day, month, year] = datePart.split('/');
       if (day && month && year) {
-        // Create date in correct format (month is 0-indexed)
         date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         
-        // If there's a time part, parse it
         if (timePart) {
           const [hours, minutes] = timePart.split(':');
           if (hours && minutes) {
@@ -55,18 +57,15 @@ function formatDateTime(dateString) {
           }
         }
       } else {
-        // Fallback to ISO parsing
         date = new Date(dateString);
       }
     } else {
       date = new Date(dateString);
     }
   } else {
-    // Assume it's in ISO format or other standard format
     date = new Date(dateString);
   }
   
-  // Check if the date is valid
   if (isNaN(date.getTime())) {
     return 'Invalid Date';
   }
@@ -85,22 +84,17 @@ function formatDate(dateString) {
   
   let date;
   
-  // If the dateString is already in DD/MM/YYYY format, parse it correctly
   if (typeof dateString === 'string' && dateString.includes('/')) {
     const [day, month, year] = dateString.split('/');
     if (day && month && year) {
-      // Create date in correct format (month is 0-indexed)
       date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     } else {
-      // Fallback to ISO parsing
       date = new Date(dateString);
     }
   } else {
-    // Assume it's in ISO format or other standard format
     date = new Date(dateString);
   }
   
-  // Check if the date is valid
   if (isNaN(date.getTime())) {
     return 'Invalid Date';
   }
@@ -112,7 +106,6 @@ function formatDate(dateString) {
   return `${day}/${month}/${year}`;
 }
 
-// Format user data with proper date formatting
 function formatUserData(user) {
   return {
     ...user,
@@ -123,7 +116,6 @@ function formatUserData(user) {
   };
 }
 
-// Format project data with proper date formatting
 function formatProjectData(project) {
   return {
     ...project,
@@ -134,7 +126,6 @@ function formatProjectData(project) {
   };
 }
 
-// Format company data with proper date formatting
 function formatCompanyData(company) {
   return {
     ...company,
@@ -143,7 +134,6 @@ function formatCompanyData(company) {
   };
 }
 
-// Format route data with proper date formatting
 function formatRouteData(route) {
   return {
     ...route,
@@ -160,28 +150,16 @@ function formatTemplateData(template) {
   };
 }
 
-// Session storage file path
-const SESSION_FILE_PATH = path.join(__dirname, "sessions.json");
 
-// Online users tracking
-const onlineUsers = new Map();
-
-// Token store with persistence
-let tokenStore = new Map();
-
-// Load sessions from disk on startup
 try {
   if (fs.existsSync(SESSION_FILE_PATH)) {
     const sessionsData = JSON.parse(fs.readFileSync(SESSION_FILE_PATH, 'utf8'));
-    // Convert the plain object back to a Map
     tokenStore = new Map(Object.entries(sessionsData).map(([token, session]) => {
-      // Convert the expiration time back from string to number
       return [token, { ...session, expires: parseInt(session.expires) }];
     }));
     
     console.log(`Loaded ${tokenStore.size} sessions from disk`);
     
-    // Filter out expired sessions
     const now = Date.now();
     for (const [token, session] of tokenStore.entries()) {
       if (session.expires < now) {
@@ -192,18 +170,15 @@ try {
   }
 } catch (error) {
   console.error("Error loading sessions from disk:", error);
-  // Continue with empty token store
   tokenStore = new Map();
 }
 
 // Function to add a new activity to the log
 const logActivity = async (userId, activityType, details = {}) => {
   try {
-    // Get the user info if available
     let userInfo = { userId };
     
     if (userId) {
-      // Get the user from DynamoDB to access their details
       const userParams = new GetCommand({
         TableName: "Users",
         Key: { userId }
@@ -220,7 +195,6 @@ const logActivity = async (userId, activityType, details = {}) => {
       }
     }
     
-    // Create activity entry
     const activity = {
       timestamp: new Date().toISOString(),
       userInfo,
@@ -228,10 +202,8 @@ const logActivity = async (userId, activityType, details = {}) => {
       details
     };
     
-    // Add to the front of the array (newest first)
     activityLog.unshift(activity);
     
-    // Trim the array if it's too long
     if (activityLog.length > MAX_ACTIVITIES) {
       activityLog.length = MAX_ACTIVITIES;
     }
@@ -246,24 +218,20 @@ function formatTimeAgo(date) {
   const now = new Date();
   const diffMs = now - new Date(date);
   
-  // Less than a minute
   if (diffMs < 60000) {
     return "just now";
   }
   
-  // Less than an hour
   if (diffMs < 3600000) {
     const minutes = Math.floor(diffMs / 60000);
     return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
   }
   
-  // Less than a day
   if (diffMs < 86400000) {
     const hours = Math.floor(diffMs / 3600000);
     return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
   }
   
-  // More than a day
   const days = Math.floor(diffMs / 86400000);
   return `${days} ${days === 1 ? 'day' : 'days'} ago`;
 }
@@ -271,7 +239,6 @@ function formatTimeAgo(date) {
 // Function to save sessions to disk
 function saveSessionsToDisk() {
   try {
-    // Convert Map to a plain object for JSON serialization
     const sessionsObject = Object.fromEntries(tokenStore);
     fs.writeFileSync(SESSION_FILE_PATH, JSON.stringify(sessionsObject));
     console.log(`Saved ${tokenStore.size} sessions to disk`);
@@ -303,7 +270,6 @@ process.on('SIGTERM', () => {
 
 // Ping endpoint for heartbeat to keep track of online users
 const handlePing = (req, res, token) => {
-  // Check if token is valid
   if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
     res.writeHead(401, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: "Unauthorized" }));
@@ -311,7 +277,6 @@ const handlePing = (req, res, token) => {
   
   const userId = tokenStore.get(token).userId;
   
-  // Update user's online status
   updateOnlineStatus(userId, true);
   
   res.writeHead(200, { "Content-Type": "application/json" });
@@ -320,18 +285,15 @@ const handlePing = (req, res, token) => {
 
 // Set user as offline endpoint
 const handleSetOffline = (req, res) => {
-  // Parse query parameters
   const url = new URL(req.url, `http://${req.headers.host}`);
   const userId = url.searchParams.get('userId');
   const token = url.searchParams.get('token');
   
-  // Basic validation
   if (!userId || !token) {
     res.writeHead(400, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: "Missing userId or token" }));
   }
   
-  // Check if token is valid for this user
   let isValidToken = false;
   for (const [storedToken, session] of tokenStore.entries()) {
     if (storedToken === token && session.userId === userId) {
@@ -345,7 +307,6 @@ const handleSetOffline = (req, res) => {
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
   
-  // Update user's online status
   updateOnlineStatus(userId, false);
   
   res.writeHead(200, { "Content-Type": "application/json" });
@@ -354,7 +315,6 @@ const handleSetOffline = (req, res) => {
 
 // Get online users endpoint
 const handleGetOnlineUsers = (req, res, token) => {
-  // Check if token is valid
   if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
     res.writeHead(401, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: "Unauthorized" }));
@@ -372,7 +332,6 @@ const handleGetOnlineUsers = (req, res, token) => {
 
 // Invalidate user sessions
 const invalidateUserSessions = (userId) => {
-  // Find all tokens for this user and remove them
   for (const [token, session] of tokenStore.entries()) {
     if (session.userId === userId) {
       console.log(`Invalidating session for user ${userId}`);
@@ -380,20 +339,16 @@ const invalidateUserSessions = (userId) => {
     }
   }
   
-  // Remove from online users
   onlineUsers.delete(userId);
   
-  // Save updated sessions to disk
   saveSessionsToDisk();
 };
 
 const server = http.createServer((req, res) => {
-  // Set CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS, DELETE");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  // Handle preflight requests
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     return res.end();
@@ -402,7 +357,6 @@ const server = http.createServer((req, res) => {
   // Log all incoming requests for debugging
   console.log(`${req.method} ${req.url}`);
 
-  // Extract authorization token from headers
   const authHeader = req.headers.authorization;
   let token = null;
   
@@ -434,7 +388,6 @@ const server = http.createServer((req, res) => {
   }
 
   else if (req.method === "GET" && req.url === "/activity") {
-  // Check if token is valid
   if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
     res.writeHead(401, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: "Unauthorized" }));
@@ -506,16 +459,16 @@ const server = http.createServer((req, res) => {
         
       // Holiday request related activities
       case 'holiday_requested':
-        message = `${username} requested time off on dates: ${activity.details.dates || 'Unknown dates'}`;
+        message = `${username} requested time off`;
         break;
       case 'holiday_approved':
-        message = `${username} approved time off request for ${activity.details.username || 'a user'} (dates: ${activity.details.dates || 'Unknown dates'})`;
+        message = `${username} approved time off request for ${activity.details.username || 'a user'}`;
         break;
       case 'holiday_rejected':
-        message = `${username} rejected time off request for ${activity.details.username || 'a user'} (dates: ${activity.details.dates || 'Unknown dates'})`;
+        message = `${username} rejected time off request for ${activity.details.username || 'a user'})`;
         break;
       case 'holiday_request_canceled':
-        message = `${username} canceled time off request for ${activity.details.username || username} (dates: ${activity.details.dates || 'Unknown dates'})`;
+        message = `${username} canceled time off request)`;
         break;
       case 'holidays_removed':
         message = `${username} removed time off for user ${activity.details.userId || 'Unknown user'} (days: ${activity.details.days || 'Unknown dates'})`;

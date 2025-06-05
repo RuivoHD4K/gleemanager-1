@@ -842,27 +842,27 @@ const UserDashboard = () => {
     
     // Check if it's a weekend
     if (isWeekend(dayDate)) {
-      return 'weekend-day';
+      return 'user-dash-weekend-day';
     }
     
     // In delete mode, show selected days to delete differently
     if (deleteMode && daysToDelete.includes(dayNumber)) {
-      return 'delete-selected';
+      return 'user-dash-delete-selected';
     }
     
     // Check if it's a national holiday
     if (nationalHolidays.includes(dayNumber)) {
-      return 'national-holiday';
+      return 'user-dash-national-holiday';
     }
     
     // Check if it's an approved holiday
     if (userHolidays.includes(dayNumber)) {
-      return deleteMode ? 'holiday-deletable' : 'approved-holiday';
+      return deleteMode ? 'user-dash-holiday-deletable' : 'user-dash-approved-holiday';
     }
     
     // Check if it's a pending holiday
     if (pendingHolidays.includes(dayNumber)) {
-      return 'pending-approval';
+      return 'user-dash-pending-approval';
     }
     
     // Check if it's a selected day (for new requests)
@@ -871,7 +871,7 @@ const UserDashboard = () => {
       selectedDay.getMonth() === currentMonth.getMonth() && 
       selectedDay.getFullYear() === currentMonth.getFullYear()
     )) {
-      return 'selected-day';
+      return 'user-dash-selected-day';
     }
     
     return '';
@@ -900,7 +900,7 @@ const UserDashboard = () => {
     
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(<td key={`empty-${i}`} className="empty-day"></td>);
+      days.push(<td key={`empty-${i}`} className="user-dash-empty-day"></td>);
     }
     
     // Add cells for each day of the month
@@ -929,27 +929,27 @@ const UserDashboard = () => {
     if (days.length > 0) {
       // Fill with empty cells
       while (days.length < 7) {
-        days.push(<td key={`empty-end-${days.length}`} className="empty-day"></td>);
+        days.push(<td key={`empty-end-${days.length}`} className="user-dash-empty-day"></td>);
       }
       rows.push(<tr key="last-row">{days}</tr>);
     }
     
     return (
-      <div className="calendar-container">
-        <div className="calendar-header">
-          <button onClick={prevMonth} className="month-nav-btn">❮</button>
+      <div className="user-dash-calendar-container">
+        <div className="user-dash-calendar-header">
+          <button onClick={prevMonth} className="user-dash-month-nav-btn">❮</button>
           <h4>{monthNames[month]} {year}</h4>
-          <button onClick={nextMonth} className="month-nav-btn">❯</button>
+          <button onClick={nextMonth} className="user-dash-month-nav-btn">❯</button>
           <button 
             onClick={toggleDeleteMode} 
-            className={`delete-mode-toggle ${deleteMode ? 'active' : ''}`} 
+            className={`user-dash-delete-mode-toggle ${deleteMode ? 'active' : ''}`} 
             title={deleteMode ? "Exit Delete Mode" : "Enter Delete Mode"}
           >
             {deleteMode ? <X size={18} /> : <Edit size={18} />}
           </button>
         </div>
         
-        <table className="calendar-table">
+        <table className="user-dash-calendar-table">
           <thead>
             <tr>
               {dayNames.map(day => (
@@ -962,46 +962,46 @@ const UserDashboard = () => {
           </tbody>
         </table>
         
-        <div className="calendar-legend">
+        <div className="user-dash-calendar-legend">
           {!deleteMode ? (
             <>
-              <div className="legend-item">
-                <div className="legend-box selected-day"></div>
+              <div className="user-dash-legend-item">
+                <div className="user-dash-legend-box user-dash-selected-day"></div>
                 <span>Selected</span>
               </div>
-              <div className="legend-item">
-                <div className="legend-box pending-approval"></div>
+              <div className="user-dash-legend-item">
+                <div className="user-dash-legend-box user-dash-pending-approval"></div>
                 <span>Pending</span>
               </div>
-              <div className="legend-item">
-                <div className="legend-box approved-holiday"></div>
+              <div className="user-dash-legend-item">
+                <div className="user-dash-legend-box user-dash-approved-holiday"></div>
                 <span>Approved</span>
               </div>
-              <div className="legend-item">
-                <div className="legend-box national-holiday"></div>
+              <div className="user-dash-legend-item">
+                <div className="user-dash-legend-box user-dash-national-holiday"></div>
                 <span>National Holiday</span>
               </div>
-              <div className="legend-item">
-                <div className="legend-box weekend-day"></div>
+              <div className="user-dash-legend-item">
+                <div className="user-dash-legend-box user-dash-weekend-day"></div>
                 <span>Weekend</span>
               </div>
             </>
           ) : (
             <>
-              <div className="legend-item">
-                <div className="legend-box holiday-deletable"></div>
+              <div className="user-dash-legend-item">
+                <div className="user-dash-legend-box user-dash-holiday-deletable"></div>
                 <span>Available to Delete</span>
               </div>
-              <div className="legend-item">
-                <div className="legend-box delete-selected"></div>
+              <div className="user-dash-legend-item">
+                <div className="user-dash-legend-box user-dash-delete-selected"></div>
                 <span>Selected for Deletion</span>
               </div>
-              <div className="legend-item">
-                <div className="legend-box national-holiday"></div>
+              <div className="user-dash-legend-item">
+                <div className="user-dash-legend-box user-dash-national-holiday"></div>
                 <span>National Holiday</span>
               </div>
-              <div className="legend-item">
-                <div className="legend-box weekend-day"></div>
+              <div className="user-dash-legend-item">
+                <div className="user-dash-legend-box user-dash-weekend-day"></div>
                 <span>Weekend</span>
               </div>
             </>
@@ -1010,29 +1010,29 @@ const UserDashboard = () => {
         
         {/* Holiday request comment field - only shown when days are selected and not in delete mode */}
         {!deleteMode && selectedDays.length > 0 && (
-          <div className="holiday-comment-container">
-            <label htmlFor="holiday-comment" className="holiday-comment-label">
+          <div className="user-dash-holiday-comment-container">
+            <label htmlFor="holiday-comment" className="user-dash-holiday-comment-label">
               <MessageSquare size={16} /> Add a comment (optional):
             </label>
             <textarea
               id="holiday-comment"
-              className="holiday-comment-input"
+              className="user-dash-holiday-comment-input"
               value={holidayComment}
               onChange={(e) => setHolidayComment(e.target.value)}
               placeholder="Reason for time off or additional notes..."
               rows={3}
               maxLength={200}
             />
-            <div className="holiday-comment-count">
+            <div className="user-dash-holiday-comment-count">
               {holidayComment.length}/200 characters
             </div>
           </div>
         )}
         
-        <div className="calendar-actions">
+        <div className="user-dash-calendar-actions">
           {!deleteMode ? (
             <button 
-              className="action-btn submit-btn"
+              className="user-dash-action-btn user-dash-submit-btn"
               onClick={submitHolidayRequest}
               disabled={selectedDays.length === 0 || submitting}
             >
@@ -1040,7 +1040,7 @@ const UserDashboard = () => {
             </button>
           ) : (
             <button 
-              className="action-btn delete-btn"
+              className="user-dash-action-btn user-dash-delete-btn"
               onClick={deleteSelectedHolidays}
               disabled={daysToDelete.length === 0 || deleting}
             >
@@ -1050,7 +1050,7 @@ const UserDashboard = () => {
         </div>
         
         {deleteMode && (
-          <p className="delete-mode-help">
+          <p className="user-dash-delete-mode-help">
             Select approved holidays you wish to remove, then click "Delete Selected Holidays".
           </p>
         )}
@@ -1087,12 +1087,12 @@ const UserDashboard = () => {
 
   return (
     <LoadingSpinner isLoading={loading}>
-      <div className="user-dashboard">
+      <div className="user-dash-container">
         <div className="page-header">
           <h1>Welcome to GleeManager</h1>
           <div className="page-actions">
             <button 
-              className="action-btn view-all-holidays-btn"
+              className="action-btn user-dash-view-all-holidays-btn"
               onClick={() => navigate('/holiday-calendar')}
             >
               <Calendar size={18} />
@@ -1101,9 +1101,9 @@ const UserDashboard = () => {
           </div>
         </div>
         
-        <div className="dashboard-grid six-column-grid">
+        <div className="dashboard-grid user-dash-six-column-grid">
           {/* First row - 3 cards, each taking 2 columns (2+2+2=6) */}
-          <div className="dashboard-card welcome-card grid-span-2">
+          <div className="dashboard-card welcome-card user-dash-grid-span-2">
             <h3>Getting Started</h3>
             <p>Welcome to GleeManager! Here are some things you can do:</p>
             <ul>
@@ -1114,31 +1114,31 @@ const UserDashboard = () => {
           </div>
           
           {/* Signature Upload Card */}
-          <div className="dashboard-card signature-card grid-span-2">
+          <div className="dashboard-card user-dash-signature-card user-dash-grid-span-2">
             <h3>Your Signature</h3>
-            <div className="signature-container">
+            <div className="user-dash-signature-container">
               {signatureLoading ? (
-                <div className="signature-loading">
-                  <div className="signature-spinner"></div>
+                <div className="user-dash-signature-loading">
+                  <div className="user-dash-signature-spinner"></div>
                   {uploadProgress > 0 && (
-                    <div className="upload-progress-container">
+                    <div className="user-dash-upload-progress-container">
                       <div 
-                        className="upload-progress-bar" 
+                        className="user-dash-upload-progress-bar" 
                         style={{ width: `${uploadProgress}%` }}
                       ></div>
-                      <span className="upload-progress-text">{uploadProgress}%</span>
+                      <span className="user-dash-upload-progress-text">{uploadProgress}%</span>
                     </div>
                   )}
                 </div>
               ) : signature ? (
-                <div className="signature-image-container">
+                <div className="user-dash-signature-image-container">
                   <img 
                     src={signature} 
                     alt="Your signature" 
-                    className="signature-image" 
+                    className="user-dash-signature-image" 
                   />
-                  <div className="signature-actions">
-                    <label htmlFor="update-signature" className="signature-action-btn edit-btn">
+                  <div className="user-dash-signature-actions">
+                    <label htmlFor="update-signature" className="user-dash-signature-action-btn edit-btn">
                       <Pencil size={16} />
                     </label>
                     <input
@@ -1149,7 +1149,7 @@ const UserDashboard = () => {
                       style={{ display: 'none' }}
                     />
                     <button 
-                      className="signature-action-btn delete-btn"
+                      className="user-dash-signature-action-btn delete-btn"
                       onClick={deleteSignature}
                     >
                       <Trash2 size={16} />
@@ -1157,9 +1157,9 @@ const UserDashboard = () => {
                   </div>
                 </div>
               ) : (
-                <div className="signature-upload">
+                <div className="user-dash-signature-upload">
                   <p>Upload your signature to use in documents</p>
-                  <label htmlFor="signature-upload" className="signature-upload-btn">
+                  <label htmlFor="signature-upload" className="user-dash-signature-upload-btn">
                     <Upload size={20} />
                     <span>Upload Signature</span>
                   </label>
@@ -1170,7 +1170,7 @@ const UserDashboard = () => {
                     onChange={handleFileChange}
                     style={{ display: 'none' }}
                   />
-                  <p className="signature-upload-help">
+                  <p className="user-dash-signature-upload-help">
                     Supported formats: JPG, PNG, GIF (max 2MB)
                   </p>
                 </div>
@@ -1178,20 +1178,20 @@ const UserDashboard = () => {
             </div>
           </div>
           
-          <div className="dashboard-card stats-card grid-span-2">
+          <div className="dashboard-card stats-card user-dash-grid-span-2">
             <h3>Your Stats</h3>
-            <div className="stats-content">
-              <div className="stat-item">
-                <span className="stat-label">Account Age</span>
-                <span className="stat-value">{userStats.accountAge}</span>
+            <div className="user-dash-stats-content">
+              <div className="user-dash-stat-item">
+                <span className="user-dash-stat-label">Account Age</span>
+                <span className="user-dash-stat-value">{userStats.accountAge}</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-label">Last Login</span>
-                <span className="stat-value">
+              <div className="user-dash-stat-item">
+                <span className="user-dash-stat-label">Last Login</span>
+                <span className="user-dash-stat-value">
                   {userStats.isOnline ? (
-                    <span className="status-indicator online" title="Online"></span>
+                    <span className="user-dash-status-indicator online" title="Online"></span>
                   ) : userStats.lastLogin !== 'Loading...' && userStats.lastLogin !== 'Error loading' ? (
-                    <span className="status-indicator offline" title="Offline"></span>
+                    <span className="user-dash-status-indicator offline" title="Offline"></span>
                   ) : null}
                   {userStats.lastLogin}
                 </span>
@@ -1201,9 +1201,9 @@ const UserDashboard = () => {
           
           {/* Second row - Holiday Calendar (3 columns) + Holiday Summary (1 column) + Kilometer Map (2 columns) */}
           {/* Holiday Calendar Card - takes up 3/6 of the row */}
-          <div className="dashboard-card holiday-calendar-card grid-span-3">
+          <div className="dashboard-card holiday-calendar-card user-dash-grid-span-3">
             <h3>Holiday Calendar</h3>
-            <p className="calendar-description">
+            <p className="user-dash-calendar-description">
               {!deleteMode 
                 ? "Select days to request time off. Your request will be sent to an administrator for approval." 
                 : "You are in delete mode. Select approved holidays to remove them."}
@@ -1212,52 +1212,52 @@ const UserDashboard = () => {
           </div>
           
           {/* Holiday Summary Card - takes up 1/6 of the row */}
-          <div className="dashboard-card holiday-stats-card grid-span-1">
+          <div className="dashboard-card holiday-stats-card user-dash-grid-span-1">
             <h3>Holiday Summary</h3>
-            <div className="holiday-summary">
-              <div className="holiday-summary-item">
-                <Clock size={24} className="holiday-icon pending" />
-                <div className="holiday-summary-content">
-                  <span className="holiday-summary-label">Days Pending</span>
-                  <span className="holiday-summary-value">{holidayStats.daysRequested}</span>
+            <div className="user-dash-holiday-summary">
+              <div className="user-dash-holiday-summary-item">
+                <Clock size={24} className="user-dash-holiday-icon pending" />
+                <div className="user-dash-holiday-summary-content">
+                  <span className="user-dash-holiday-summary-label">Days Pending</span>
+                  <span className="user-dash-holiday-summary-value">{holidayStats.daysRequested}</span>
                 </div>
               </div>
             </div>
             
-            <div className="pending-requests-section">
+            <div className="user-dash-pending-requests-section">
               <h4>Your Pending Requests</h4>
               {pendingRequestsList.length === 0 ? (
-                <p className="no-pending-requests-message">You have no pending holiday requests.</p>
+                <p className="user-dash-no-pending-requests-message">You have no pending holiday requests.</p>
               ) : (
-                <ul className="pending-requests-list">
+                <ul className="user-dash-pending-requests-list">
                   {pendingRequestsList.map(request => (
-                    <li key={request.requestId} className="pending-request-item">
-                      <div className="request-dates">
-                        <span className="request-dates-label">Dates:</span>
-                        <span className="request-dates-value">
+                    <li key={request.requestId} className="user-dash-pending-request-item">
+                      <div className="user-dash-request-dates">
+                        <span className="user-dash-request-dates-label">Dates:</span>
+                        <span className="user-dash-request-dates-value">
                           {request.dates.map(dateStr => {
                             const date = new Date(dateStr);
                             return formatDate(date);
                           }).join(', ')}
                         </span>
                       </div>
-                      <div className="request-date">
-                        <span className="request-date-label">Requested:</span>
+                      <div className="user-dash-request-date">
+                        <span className="user-dash-request-date-label">Requested:</span>
                         <span className="request-date-value">{formatDateTime(request.requestDate)}</span>
                       </div>
                       {request.notes && request.notes !== "Requested through user dashboard" && (
-                        <div className="request-notes">
-                          <span className="request-notes-label">Notes:</span>
+                        <div className="user-dash-request-notes">
+                          <span className="user-dash-request-notes-label">Notes:</span>
                           <span className="request-notes-value">{request.notes}</span>
                         </div>
                       )}
                       <button
-                        className="cancel-request-btn"
+                        className="user-dash-cancel-request-btn"
                         onClick={() => cancelHolidayRequest(request.requestId)}
                         disabled={cancellingRequestId === request.requestId}
                       >
                         {cancellingRequestId === request.requestId ? (
-                          <span className="cancel-loading">Cancelling...</span>
+                          <span className="user-dash-cancel-loading">Cancelling...</span>
                         ) : (
                           <>
                             <X size={16} />
@@ -1273,11 +1273,11 @@ const UserDashboard = () => {
           </div>
           
           {/* Empty Card for future Kilometer Map - takes up 2/6 of the row */}
-          <div className="dashboard-card kilometer-map-card grid-span-2">
+          <div className="dashboard-card kilometer-map-card user-dash-grid-span-2">
             <h3>Kilometer Map</h3>
-            <p className="coming-soon-message">This feature is coming soon. You'll be able to track and submit travel distances here.</p>
+            <p className="user-dash-coming-soon-message">This feature is coming soon. You'll be able to track and submit travel distances here.</p>
             <div className="placeholder-content">
-              <div className="placeholder-icon">
+              <div className="user-dash-placeholder-icon">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#cccccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M12 8V16" stroke="#cccccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1293,4 +1293,4 @@ const UserDashboard = () => {
   );
 };
 
-export default UserDashboard; 
+export default UserDashboard;
