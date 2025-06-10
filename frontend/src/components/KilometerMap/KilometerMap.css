@@ -1,0 +1,624 @@
+/* KilometerMapCard.css */
+.kilometer-map-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.km-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--light-gray);
+  background-color: var(--gray-bg);
+}
+
+.km-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.km-header-title h3 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: var(--font-lg);
+}
+
+.km-icon {
+  color: var(--primary-color);
+}
+
+.km-month-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.km-month-btn {
+  background-color: white;
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-full);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: var(--font-base);
+}
+
+.km-month-btn:hover {
+  background-color: var(--primary-light);
+  color: white;
+  border-color: var(--primary-light);
+}
+
+.km-current-month {
+  font-weight: 600;
+  min-width: 140px;
+  text-align: center;
+  color: var(--text-color);
+}
+
+.km-content {
+  flex: 1;
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+}
+
+.km-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.km-section h4 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+  color: var(--text-color);
+  font-size: var(--font-base);
+  font-weight: 600;
+}
+
+.km-section h5 {
+  margin: var(--spacing-md) 0 var(--spacing-sm) 0;
+  color: var(--text-color);
+  font-size: var(--font-sm);
+  font-weight: 600;
+}
+
+/* Error Section */
+.km-error-section {
+  background-color: rgba(220, 53, 69, 0.05);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+  overflow: hidden;
+}
+
+.km-error-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: rgba(220, 53, 69, 0.1);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--danger-color);
+  font-weight: 600;
+  font-size: var(--font-sm);
+}
+
+.km-error-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--danger-color);
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s ease;
+}
+
+.km-error-close:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.km-error-message {
+  padding: var(--spacing-md);
+  color: var(--danger-color);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+}
+
+/* Debug Section */
+.km-debug-section {
+  background-color: rgba(0, 119, 204, 0.05);
+  border: 1px solid rgba(0, 119, 204, 0.2);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.km-debug-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: rgba(0, 119, 204, 0.1);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--info-color);
+  font-weight: 600;
+  font-size: var(--font-sm);
+}
+
+.km-debug-content {
+  padding: var(--spacing-md);
+  color: var(--info-color);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+}
+
+.km-debug-content p {
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.km-debug-content details {
+  margin-top: var(--spacing-sm);
+}
+
+.km-debug-content summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+
+.km-debug-content ul {
+  margin: var(--spacing-xs) 0 0 var(--spacing-md);
+  padding: 0;
+}
+
+.km-debug-content li {
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Warning Message */
+.km-warning {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: var(--warning-color);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  margin-top: var(--spacing-sm);
+}
+
+/* Route Selection */
+.km-routes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.km-route-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  border: 2px solid var(--light-gray);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  background-color: white;
+}
+
+.km-route-card:hover {
+  border-color: var(--primary-light);
+  background-color: rgba(248, 84, 68, 0.05);
+}
+
+.km-route-card.selected {
+  border-color: var(--primary-color);
+  background-color: rgba(248, 84, 68, 0.1);
+}
+
+.km-route-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.km-route-name {
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-xs);
+}
+
+.km-route-distance {
+  font-size: var(--font-sm);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.km-selected-icon {
+  color: var(--success-color);
+}
+
+.km-selection-summary {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--gray-bg);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  color: #666;
+}
+
+.km-no-data {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: var(--spacing-lg);
+  background-color: var(--gray-bg);
+  border-radius: var(--radius-sm);
+}
+
+/* Template Selection */
+.km-template-select {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-base);
+  background-color: white;
+  transition: var(--transition);
+}
+
+.km-template-select:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.1);
+}
+
+/* Distance Input */
+.km-distance-input {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.km-distance-field {
+  flex: 1;
+  padding: var(--spacing-md);
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-base);
+  transition: var(--transition);
+}
+
+.km-distance-field:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.1);
+}
+
+.km-distance-unit {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+/* Advanced Options */
+.km-advanced-toggle {
+  margin-bottom: var(--spacing-md);
+}
+
+.km-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--primary-color);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.km-toggle-btn:hover {
+  color: var(--primary-dark);
+}
+
+.km-toggle-arrow {
+  transition: transform 0.2s ease;
+  font-size: var(--font-xs);
+}
+
+.km-toggle-arrow.open {
+  transform: rotate(180deg);
+}
+
+.km-advanced-options {
+  background-color: var(--gray-bg);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--light-gray);
+}
+
+.km-option-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.km-option-row:last-child {
+  margin-bottom: 0;
+}
+
+.km-option-row label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-sm);
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.km-option-select {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  background-color: white;
+}
+
+.km-option-number {
+  width: 60px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  text-align: center;
+}
+
+/* Results Section */
+.km-results {
+  background-color: rgba(40, 167, 69, 0.05);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+.km-results h4 {
+  color: var(--success-color);
+}
+
+.km-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.km-result-item {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-sm);
+  background-color: white;
+  border-radius: var(--radius-sm);
+}
+
+.km-result-label {
+  font-size: var(--font-sm);
+  color: #666;
+}
+
+.km-result-value {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.km-distribution-preview {
+  margin-top: var(--spacing-md);
+}
+
+.km-distribution-list {
+  background-color: white;
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+}
+
+.km-distribution-item {
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--light-gray);
+  align-items: center;
+}
+
+.km-distribution-item:last-child {
+  border-bottom: none;
+}
+
+.km-dist-date {
+  font-size: var(--font-sm);
+  color: #666;
+  font-weight: 500;
+}
+
+.km-dist-route {
+  font-size: var(--font-sm);
+  color: var(--text-color);
+}
+
+.km-dist-distance {
+  font-size: var(--font-sm);
+  color: var(--primary-color);
+  font-weight: 600;
+  text-align: right;
+}
+
+.km-distribution-more {
+  text-align: center;
+  padding: var(--spacing-sm);
+  color: #666;
+  font-style: italic;
+  font-size: var(--font-sm);
+}
+
+/* Actions */
+.km-actions {
+  margin: var(--spacing-xl) 0;
+  display: flex;
+  justify-content: center;
+}
+
+.km-generate-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--font-base);
+  transition: var(--transition);
+  min-width: 200px;
+  justify-content: center;
+}
+
+.km-generate-btn:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--hover-shadow);
+}
+
+.km-generate-btn:disabled {
+  background-color: var(--light-gray);
+  color: #666;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.km-spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Info Section */
+.km-info {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background-color: rgba(0, 119, 204, 0.05);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0, 119, 204, 0.2);
+}
+
+.km-info svg {
+  color: var(--info-color);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.km-info-text {
+  font-size: var(--font-sm);
+  color: #666;
+  line-height: 1.4;
+}
+
+.km-info-text p {
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.km-info-text p:last-child {
+  margin-bottom: 0;
+  font-weight: 600;
+  color: var(--info-color);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .km-header {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+  }
+  
+  .km-month-selector {
+    align-self: stretch;
+    justify-content: center;
+  }
+  
+  .km-routes-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .km-route-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .km-selected-icon {
+    align-self: flex-end;
+  }
+  
+  .km-selection-summary {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  
+  .km-distance-input {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .km-results-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .km-distribution-item {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xs);
+    text-align: left;
+  }
+  
+  .km-dist-distance {
+    text-align: left;
+  }
+  
+  .km-option-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+  
+  .km-error-header {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .km-content {
+    padding: var(--spacing-md);
+  }
+  
+  .km-generate-btn {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .km-header {
+    padding: var(--spacing-md);
+  }
+}

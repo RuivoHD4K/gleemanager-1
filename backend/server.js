@@ -5,6 +5,7 @@ const crypto = require("crypto"); // Node.js built-in encryption library
 const { v4: uuidv4 } = require("uuid"); // You'll need to install this: npm install uuid
 const fs = require("fs");
 const path = require("path");
+const XlsxPopulate = require('xlsx-populate');
 const busboy = require('busboy'); // You'll need to install this: npm install busboy
 const MAX_ACTIVITIES = 50;
 const activityLog = [];
@@ -13,7 +14,38 @@ const onlineUsers = new Map();
 let tokenStore = new Map();
 
 
+
+
 // ## FUNCTIONS ##
+
+function parseDate(dateString) {
+  if (!dateString) return null;
+  
+  try {
+    // Check if it's in DD/MM/YYYY format
+    if (typeof dateString === 'string' && dateString.includes('/')) {
+      const parts = dateString.split('/');
+      if (parts.length === 3) {
+        const [day, month, year] = parts;
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+        }
+      }
+    }
+    
+    // If not DD/MM/YYYY format, try parsing as ISO date
+    const date = new Date(dateString);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error parsing date:', error);
+    return null;
+  }
+}
 
 // Encryption functions
 function generateSalt() {
@@ -2003,6 +2035,494 @@ else if (req.method === "DELETE" && req.url.match(/^\/excel-templates\/[^\/]+$/)
   })();
 }
 
+
+
+else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized - Invalid or expired token" }));
+  }
+
+  const userId = tokenStore.get(token).userId;
+  
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+  
+  req.on("end", async () => {
+    try {
+      console.log('=== KILOMETER MAP GENERATION START ===');
+      console.log('Request received at:', new Date().toISOString());
+      
+      let requestData;
+      try {
+        requestData = JSON.parse(body);
+      } catch (parseError) {
+        console.error('JSON parsing error:', parseError);
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Invalid JSON in request body" }));
+      }
+      
+      console.log('Request data:', {
+        templateId: requestData.templateId,
+        year: requestData.year,
+        month: requestData.month,
+        selectedRoutes: requestData.selectedRoutes?.length,
+        targetDistance: requestData.targetDistance
+      });
+      
+      // Validate request data
+      if (!requestData.templateId) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Template ID is required" }));
+      }
+      
+      if (!requestData.selectedRoutes || !Array.isArray(requestData.selectedRoutes) || requestData.selectedRoutes.length === 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "At least one route must be selected" }));
+      }
+      
+      if (!requestData.year || !requestData.month || !requestData.targetDistance) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Year, month, and target distance are required" }));
+      }
+      
+      const year = parseInt(requestData.year);
+      const month = parseInt(requestData.month);
+      const targetDistance = parseFloat(requestData.targetDistance);
+      
+      if (targetDistance <= 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Target distance must be greater than 0" }));
+      }
+      
+      // Get the template from database
+      console.log(`Getting template ${requestData.templateId} from database`);
+      const templateParams = new GetCommand({
+        TableName: "ExcelTemplates",
+        Key: { templateId: requestData.templateId }
+      });
+      
+      const templateResult = await dynamoDB.send(templateParams);
+      
+      if (!templateResult.Item) {
+        console.error('Template not found:', requestData.templateId);
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: `Template with ID ${requestData.templateId} not found` }));
+      }
+      
+      const template = templateResult.Item;
+      console.log('Template found:', template.name);
+      
+      // Get selected routes from database
+      console.log('Fetching selected routes from database');
+      const routePromises = requestData.selectedRoutes.map(routeId => {
+        return dynamoDB.send(new GetCommand({
+          TableName: "Routes",
+          Key: { routeId }
+        }));
+      });
+      
+      const routeResults = await Promise.all(routePromises);
+      const selectedRouteData = routeResults
+        .filter(result => result.Item)
+        .map(result => result.Item);
+      
+      if (selectedRouteData.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "No valid routes found with the provided IDs" }));
+      }
+      
+      console.log(`Found ${selectedRouteData.length} valid routes`);
+      
+      // Get user holidays for the specified month
+      console.log(`Fetching user holidays for ${year}-${String(month).padStart(2, '0')}`);
+      const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
+      let userHolidays = [];
+      
+      try {
+        const userHolidaysParams = new ScanCommand({
+          TableName: "UserHolidays",
+          FilterExpression: "userId = :userId AND yearMonth = :yearMonth",
+          ExpressionAttributeValues: {
+            ":userId": userId,
+            ":yearMonth": yearMonth
+          }
+        });
+        
+        const userHolidaysResult = await dynamoDB.send(userHolidaysParams);
+        if (userHolidaysResult.Items && userHolidaysResult.Items.length > 0) {
+          userHolidays = userHolidaysResult.Items[0].days || [];
+        }
+        console.log('User holidays:', userHolidays);
+      } catch (holidayError) {
+        console.warn('Could not fetch user holidays:', holidayError);
+      }
+      
+      // Get national holidays for Portugal
+      console.log(`Fetching national holidays for Portugal ${year}`);
+      let nationalHolidays = [];
+      
+      try {
+        const https = require('https');
+        
+        const makeRequest = (url) => {
+          return new Promise((resolve, reject) => {
+            const req = https.get(url, (res) => {
+              let data = '';
+              
+              res.on('data', (chunk) => {
+                data += chunk;
+              });
+              
+              res.on('end', () => {
+                if (res.statusCode === 200) {
+                  try {
+                    const parsed = JSON.parse(data);
+                    resolve(parsed);
+                  } catch (parseError) {
+                    reject(new Error('Failed to parse holiday API response'));
+                  }
+                } else {
+                  reject(new Error(`Holiday API returned status ${res.statusCode}`));
+                }
+              });
+            });
+            
+            req.on('error', (error) => {
+              reject(error);
+            });
+            
+            req.setTimeout(10000, () => {
+              req.destroy();
+              reject(new Error('Holiday API request timeout'));
+            });
+          });
+        };
+        
+        const nationalData = await makeRequest(`https://date.nager.at/api/v3/PublicHolidays/${year}/PT`);
+        nationalHolidays = nationalData
+          .filter(holiday => holiday.date.startsWith(`${year}-${String(month).padStart(2, '0')}`))
+          .map(holiday => parseInt(holiday.date.substring(8, 10), 10));
+        console.log('National holidays:', nationalHolidays);
+      } catch (holidayError) {
+        console.warn('Could not fetch national holidays:', holidayError.message);
+      }
+      
+      // Calculate valid days (excluding weekends, user holidays, national holidays)
+      console.log('Calculating valid days for the month');
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const validDays = [];
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month - 1, day);
+        const dayOfWeek = date.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const isUserHoliday = userHolidays.includes(day);
+        const isNationalHoliday = nationalHolidays.includes(day);
+        
+        // Skip weekends and holidays
+        if (!isWeekend && !isUserHoliday && !isNationalHoliday) {
+          validDays.push(day);
+        }
+      }
+      
+      console.log(`Valid working days: ${validDays.length} out of ${daysInMonth} days`);
+      console.log('Valid days:', validDays);
+      
+      if (validDays.length === 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ 
+          error: "No valid working days available for the selected month",
+          details: {
+            daysInMonth,
+            userHolidays,
+            nationalHolidays,
+            weekendsExcluded: true
+          }
+        }));
+      }
+      
+      // Find optimal route combination to reach target distance
+      console.log('Finding optimal route combination for target:', targetDistance);
+      
+      const findOptimalRoutesCombination = () => {
+        let bestCombination = null;
+        let bestExcess = Infinity;
+        
+        const maxIterations = 1000;
+        let iterations = 0;
+        
+        while (iterations < maxIterations && bestExcess > targetDistance * 0.05) {
+          const combination = [];
+          let totalDistance = 0;
+          
+          // Randomized greedy approach
+          const shuffledRoutes = [...selectedRouteData].sort(() => Math.random() - 0.5);
+          
+          while (totalDistance < targetDistance && combination.length < 200) {
+            const remaining = targetDistance - totalDistance;
+            let chosenRoute = null;
+            
+            // Try to find a route that gets us close to the target
+            for (const route of shuffledRoutes) {
+              if (route.routeLength <= remaining + (targetDistance * 0.15)) {
+                chosenRoute = route;
+                break;
+              }
+            }
+            
+            // If no good fit, choose the smallest route
+            if (!chosenRoute) {
+              chosenRoute = shuffledRoutes.reduce((min, route) => 
+                route.routeLength < min.routeLength ? route : min
+              );
+            }
+            
+            combination.push(chosenRoute);
+            totalDistance += chosenRoute.routeLength;
+          }
+          
+          if (totalDistance >= targetDistance) {
+            const excess = totalDistance - targetDistance;
+            if (excess < bestExcess) {
+              bestExcess = excess;
+              bestCombination = {
+                routes: [...combination],
+                totalDistance: totalDistance,
+                excess: excess
+              };
+            }
+          }
+          
+          iterations++;
+        }
+        
+        return bestCombination;
+      };
+      
+      const optimalCombination = findOptimalRoutesCombination();
+      
+      if (!optimalCombination) {
+        // Try a simple greedy approach as fallback
+        const combination = [];
+        let totalDistance = 0;
+        const sortedRoutes = selectedRouteData.sort((a, b) => a.routeLength - b.routeLength);
+        
+        while (totalDistance < targetDistance && combination.length < 300) {
+          const remaining = targetDistance - totalDistance;
+          let bestRoute = sortedRoutes[0];
+          
+          for (const route of sortedRoutes) {
+            if (route.routeLength <= remaining * 1.2) {
+              bestRoute = route;
+            }
+          }
+          
+          combination.push(bestRoute);
+          totalDistance += bestRoute.routeLength;
+        }
+        
+        if (totalDistance >= targetDistance) {
+          optimalCombination = {
+            routes: combination,
+            totalDistance: totalDistance,
+            excess: totalDistance - targetDistance
+          };
+        } else {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ 
+            error: `Cannot reach target distance ${targetDistance}km with selected routes`,
+            details: {
+              maxPossible: totalDistance,
+              selectedRoutes: selectedRouteData.map(r => ({
+                name: `${r.startLocation} → ${r.destination}`,
+                distance: r.routeLength
+              }))
+            }
+          }));
+        }
+      }
+      
+      console.log('Optimal combination found:', {
+        routeCount: optimalCombination.routes.length,
+        totalDistance: optimalCombination.totalDistance,
+        excess: optimalCombination.excess
+      });
+      
+      // FIXED: Distribute routes across valid days RANDOMLY (instead of sequentially)
+      console.log('Distributing routes randomly across valid days');
+      const distribution = [];
+      const routesToDistribute = [...optimalCombination.routes];
+      
+      // Shuffle routes for better distribution
+      for (let i = routesToDistribute.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [routesToDistribute[i], routesToDistribute[j]] = [routesToDistribute[j], routesToDistribute[i]];
+      }
+      
+      // If we have more routes than available days, we'll need to assign multiple routes per day
+      const routesPerDay = Math.ceil(routesToDistribute.length / validDays.length);
+      const maxRoutesPerDay = routesPerDay;
+      
+      // Track how many routes we've assigned to each day
+      const dayRouteCount = {};
+      validDays.forEach(day => dayRouteCount[day] = 0);
+      
+      // Distribute routes randomly instead of sequentially
+      for (let i = 0; i < routesToDistribute.length; i++) {
+        const route = routesToDistribute[i];
+        
+        // Find days that haven't reached the maximum routes per day
+        const availableForAssignment = validDays.filter(day => dayRouteCount[day] < maxRoutesPerDay);
+        
+        // If all days are at capacity, reset the counter (this handles cases with many routes)
+        if (availableForAssignment.length === 0) {
+          validDays.forEach(day => dayRouteCount[day] = 0);
+          availableForAssignment.push(...validDays);
+        }
+        
+        // FIXED: Randomly select a day from available days (instead of cycling through sequentially)
+        const randomIndex = Math.floor(Math.random() * availableForAssignment.length);
+        const assignedDay = availableForAssignment[randomIndex];
+        
+        // Increment the counter for this day
+        dayRouteCount[assignedDay]++;
+        
+        const date = new Date(year, month - 1, assignedDay);
+        
+        distribution.push({
+          day: assignedDay,
+          date: date.toISOString().split('T')[0],
+          route: route,
+          distance: route.routeLength,
+          routeIndex: i + 1
+        });
+        
+        console.log(`Assigned route ${i + 1} to day ${assignedDay}: ${route.startLocation} → ${route.destination} (${route.routeLength}km)`);
+      }
+      
+      console.log(`Distribution completed: ${distribution.length} routes across ${new Set(distribution.map(d => d.day)).size} days`);
+      
+      // REAL SOLUTION: Use xlsx-populate to preserve ALL existing formatting
+      console.log('Generating Excel file with xlsx-populate (preserves ALL formatting)');
+      
+      if (!template.fileContent) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Template file content is missing" }));
+      }
+      
+      // Decode template file to buffer
+      const templateBuffer = Buffer.from(template.fileContent, 'base64');
+      
+      // Load the existing workbook with xlsx-populate (preserves ALL formatting)
+      const workbook = await XlsxPopulate.fromDataAsync(templateBuffer);
+      
+      // Get the first worksheet
+      const worksheet = workbook.sheet(0); // or workbook.sheet("SheetName")
+      
+      // Clear existing data in rows 9-39 (days 1-31) while preserving ALL formatting
+      for (let day = 1; day <= 31; day++) {
+        const rowIndex = 8 + day;
+        
+        // Clear columns B, C, F but preserve ALL formatting (colors, borders, fonts, etc.)
+        ['B', 'C', 'F'].forEach(col => {
+          const cellRef = `${col}${rowIndex}`;
+          worksheet.cell(cellRef).value(''); // This preserves ALL formatting
+        });
+      }
+      
+      // Create day-to-route mapping
+      const dayRouteMap = {};
+      distribution.forEach(entry => {
+        if (!dayRouteMap[entry.day]) {
+          dayRouteMap[entry.day] = [];
+        }
+        dayRouteMap[entry.day].push(entry);
+      });
+      
+      // Fill Excel with route data while preserving ALL formatting
+      let cellsUpdated = 0;
+      for (let day = 1; day <= daysInMonth; day++) {
+        if (dayRouteMap[day] && dayRouteMap[day].length > 0) {
+          // Use the first route for this day
+          const entry = dayRouteMap[day][0];
+          const rowIndex = 8 + day;
+          
+          // Update cell values - xlsx-populate automatically preserves ALL formatting
+          worksheet.cell(`B${rowIndex}`).value(entry.route.startLocation);
+          worksheet.cell(`C${rowIndex}`).value(entry.route.destination);
+          worksheet.cell(`F${rowIndex}`).value(entry.route.routeLength);
+          
+          cellsUpdated++;
+        }
+      }
+      
+      console.log(`Excel updated: ${cellsUpdated} days filled with route data`);
+      
+      // Generate the output buffer with ALL formatting preserved
+      const modifiedBuffer = await workbook.outputAsync();
+      
+      // Log activity
+      try {
+        const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(year, month - 1, 1));
+        await logActivity(userId, 'kilometer_map_generated', {
+          templateName: template.name,
+          month: `${monthName} ${year}`,
+          routeCount: distribution.length,
+          daysWithRoutes: Object.keys(dayRouteMap).length,
+          totalDistance: optimalCombination.totalDistance,
+          targetDistance: targetDistance
+        });
+      } catch (logError) {
+        console.error('Error logging activity:', logError);
+      }
+      
+      // Send file as download
+      const filename = `kilometer_map_${year}_${String(month).padStart(2, '0')}.xlsx`;
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Length', modifiedBuffer.length);
+      
+      console.log('=== KILOMETER MAP GENERATION SUCCESS ===');
+      console.log(`File: ${filename} (${modifiedBuffer.length} bytes)`);
+      console.log(`Routes: ${distribution.length} across ${Object.keys(dayRouteMap).length} days`);
+      console.log(`Distance: ${optimalCombination.totalDistance.toFixed(1)}km (target: ${targetDistance}km, excess: ${optimalCombination.excess.toFixed(1)}km)`);
+      
+      res.writeHead(200);
+      res.end(modifiedBuffer);
+      
+    } catch (err) {
+      console.error("=== KILOMETER MAP GENERATION ERROR ===");
+      console.error("Error:", err);
+      console.error("Stack:", err.stack);
+      
+      let errorMessage = "Failed to generate kilometer map";
+      
+      if (err.message.includes('Template')) {
+        errorMessage = "Template processing error: " + err.message;
+      } else if (err.message.includes('XLSX') || err.message.includes('Excel')) {
+        errorMessage = "Excel file processing error: " + err.message;
+      } else if (err.message.includes('DynamoDB')) {
+        errorMessage = "Database error: " + err.message;
+      } else if (err.message.includes('Holiday')) {
+        errorMessage = "Holiday validation error: " + err.message;
+      } else {
+        errorMessage = "Server error: " + err.message;
+      }
+      
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ 
+        error: errorMessage,
+        details: err.message,
+        timestamp: new Date().toISOString()
+      }));
+    }
+  });
+}
 
 else if (req.method === "GET" && req.url === "/companies") {
   // Check if token is valid

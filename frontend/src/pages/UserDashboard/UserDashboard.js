@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
+import KilometerMap from '../../components/KilometerMap/KilometerMap';
 import { useToast } from '../../components/Toast/ToastContext';
 import { 
   Upload, Pencil, Trash2, Calendar, Clock, Check, 
@@ -1272,20 +1273,9 @@ const UserDashboard = () => {
             </div>
           </div>
           
-          {/* Empty Card for future Kilometer Map - takes up 2/6 of the row */}
+          {/* Kilometer Map Card - takes up 2/6 of the row */}
           <div className="dashboard-card kilometer-map-card user-dash-grid-span-2">
-            <h3>Kilometer Map</h3>
-            <p className="user-dash-coming-soon-message">This feature is coming soon. You'll be able to track and submit travel distances here.</p>
-            <div className="placeholder-content">
-              <div className="user-dash-placeholder-icon">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#cccccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M12 8V16" stroke="#cccccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M8 12H16" stroke="#cccccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <p>Future home of the Kilometer Map feature</p>
-            </div>
+            <KilometerMap />
           </div>
         </div>
       </div>
