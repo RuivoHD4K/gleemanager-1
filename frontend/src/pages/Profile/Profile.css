@@ -5,7 +5,7 @@
 
 .profile-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
 }
@@ -81,6 +81,76 @@
   gap: var(--spacing-lg);
 }
 
+/* Personal Details specific styles */
+.personal-details-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-left: 4px solid var(--primary-color);
+}
+
+.personal-details-card h3 {
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.personal-details-card h3::before {
+  content: "👤";
+  font-size: 1.2em;
+}
+
+/* Enhanced form styling for personal details */
+.profile-form .form-group input[type="text"]:focus,
+.profile-form .form-group textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(248, 84, 68, 0.1);
+}
+
+/* License plate specific styling */
+input[name="licensePlate"] {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+}
+
+/* NIF specific styling */
+input[name="nif"] {
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.05em;
+}
+
+/* Enhanced grid layout for larger screens */
+@media (min-width: 1200px) {
+  .profile-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .profile-card {
+    grid-column: 1 / -1;
+  }
+  
+  /* Personal details card takes full width on large screens for better visibility */
+  .personal-details-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1400px) {
+  .profile-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .profile-card {
+    grid-column: 1 / -1;
+  }
+  
+  /* On very large screens, allow personal details to span 2 columns */
+  .personal-details-card {
+    grid-column: span 2;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .user-details {
@@ -102,5 +172,34 @@
   
   .info-value {
     font-size: var(--font-lg);
+  }
+  
+  .profile-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .profile-form {
+    gap: var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-container {
+    padding: 0 var(--spacing-sm);
+  }
+  
+  .avatar-large {
+    width: 60px;
+    height: 60px;
+    font-size: var(--font-lg);
+  }
+  
+  .user-details {
+    gap: var(--spacing-sm);
+  }
+  
+  .profile-form .form-group textarea {
+    min-height: 80px;
   }
 }

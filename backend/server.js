@@ -1112,7 +1112,102 @@ const server = http.createServer((req, res) => {
     })();
   }
 
-  // Add these endpoints to your server.js file after your existing user management endpoints
+// Update user personal details
+else if (req.method === "PUT" && req.url.match(/^\/users\/[^\/]+\/personal-details$/)) {
+  // Extract userId from URL
+  const userId = req.url.split("/")[2];
+  console.log("Personal details update request for userId:", userId);
+  
+  // Check if token is valid
+  if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
+    console.log("Authorization failed for token:", token);
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Unauthorized" }));
+  }
+  
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk;
+  });
+
+  req.on("end", async () => {
+    try {
+      const personalData = JSON.parse(body);
+      console.log("Personal details data received:", personalData);
+      
+      // Validate NIF if provided (Portuguese tax number - should be 9 digits)
+      if (personalData.nif && !/^\d{9}$/.test(personalData.nif)) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "NIF must be exactly 9 digits" }));
+      }
+      
+      // Validate license plate length if provided
+      if (personalData.licensePlate && personalData.licensePlate.length > 10) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "License plate cannot exceed 10 characters" }));
+      }
+      
+      // Get the existing user with GetCommand by primary key
+      const getParams = new GetCommand({
+        TableName: "Users",
+        Key: {
+          userId: userId
+        }
+      });
+      
+      console.log("Looking for user with ID:", userId);
+      const userResult = await dynamoDB.send(getParams);
+      
+      if (!userResult.Item) {
+        console.log("User not found with ID:", userId);
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
+      }
+      
+      const existingUser = userResult.Item;
+      console.log("Found existing user:", existingUser.email);
+      
+      // Update user with new personal details
+      const updatedUser = {
+        ...existingUser,
+        fullName: personalData.fullName || existingUser.fullName || "",
+        address: personalData.address || existingUser.address || "",
+        nif: personalData.nif || existingUser.nif || "",
+        licensePlate: personalData.licensePlate ? personalData.licensePlate.toUpperCase() : (existingUser.licensePlate || ""),
+        updatedAt: new Date().toISOString()
+      };
+      
+      console.log("Updating user personal details:", {
+        fullName: updatedUser.fullName,
+        address: updatedUser.address ? 'Set' : 'Empty',
+        nif: updatedUser.nif,
+        licensePlate: updatedUser.licensePlate
+      });
+      
+      const updateParams = new PutCommand({
+        TableName: "Users",
+        Item: updatedUser
+      });
+      
+      await dynamoDB.send(updateParams);
+      console.log("User personal details updated successfully");
+      
+      // Remove sensitive fields from response and format dates
+      const { passwordHash, salt, ...safeUser } = updatedUser;
+      const formattedUser = formatUserData(safeUser);
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        message: "Personal details updated successfully",
+        user: formattedUser
+      }));
+    } catch (err) {
+      console.error("Error updating user personal details:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
 
 // Get all projects
 else if (req.method === "GET" && req.url === "/projects") {
@@ -2035,8 +2130,6 @@ else if (req.method === "DELETE" && req.url.match(/^\/excel-templates\/[^\/]+$/)
   })();
 }
 
-
-
 else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
   // Check if token is valid
   if (!token || !tokenStore.has(token) || tokenStore.get(token).expires < Date.now()) {
@@ -2093,6 +2186,15 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       const month = parseInt(requestData.month);
       const targetDistance = parseFloat(requestData.targetDistance);
       
+      // Define Portuguese months array
+      const PORTUGUESE_MONTHS = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+      ];
+      const monthNamePT = PORTUGUESE_MONTHS[month - 1];
+      
+      console.log(`PORTUGUESE MONTH DEBUG: month=${month}, monthNamePT=${monthNamePT}`);
+      
       if (targetDistance <= 0) {
         res.writeHead(400, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: "Target distance must be greater than 0" }));
@@ -2115,6 +2217,28 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       
       const template = templateResult.Item;
       console.log('Template found:', template.name);
+      
+      // Get user personal details
+      console.log('Fetching user personal details from database');
+      const userParams = new GetCommand({
+        TableName: "Users",
+        Key: { userId }
+      });
+      
+      const userResult = await dynamoDB.send(userParams);
+      
+      if (!userResult.Item) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
+      }
+      
+      const userDetails = userResult.Item;
+      console.log('User details found:', {
+        fullName: userDetails.fullName || 'Not set',
+        address: userDetails.address ? 'Set' : 'Not set',
+        nif: userDetails.nif || 'Not set',
+        licensePlate: userDetails.licensePlate || 'Not set'
+      });
       
       // Get selected routes from database
       console.log('Fetching selected routes from database');
@@ -2245,65 +2369,55 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
         }));
       }
       
-      // Find optimal route combination to reach target distance
+      // RESTORED: Original working algorithm
       console.log('Finding optimal route combination for target:', targetDistance);
       
       const findOptimalRoutesCombination = () => {
+        const maxDays = validDays.length;
+        const target = targetDistance;
+
+        // Sort routes ascending by distance to facilitate pruning
+        const sortedRoutes = selectedRouteData.sort((a, b) => a.routeLength - b.routeLength);
+        const n = sortedRoutes.length;
+
         let bestCombination = null;
-        let bestExcess = Infinity;
-        
-        const maxIterations = 1000;
-        let iterations = 0;
-        
-        while (iterations < maxIterations && bestExcess > targetDistance * 0.05) {
-          const combination = [];
-          let totalDistance = 0;
-          
-          // Randomized greedy approach
-          const shuffledRoutes = [...selectedRouteData].sort(() => Math.random() - 0.5);
-          
-          while (totalDistance < targetDistance && combination.length < 200) {
-            const remaining = targetDistance - totalDistance;
-            let chosenRoute = null;
-            
-            // Try to find a route that gets us close to the target
-            for (const route of shuffledRoutes) {
-              if (route.routeLength <= remaining + (targetDistance * 0.15)) {
-                chosenRoute = route;
-                break;
-              }
-            }
-            
-            // If no good fit, choose the smallest route
-            if (!chosenRoute) {
-              chosenRoute = shuffledRoutes.reduce((min, route) => 
-                route.routeLength < min.routeLength ? route : min
-              );
-            }
-            
-            combination.push(chosenRoute);
-            totalDistance += chosenRoute.routeLength;
+        let closestAboveTarget = Infinity;
+
+        const backtrack = (index, selectedRoutes, totalDistance) => {
+          if (selectedRoutes.length > maxDays) return; // One route per valid day max
+          if (totalDistance >= target && totalDistance < closestAboveTarget) {
+            closestAboveTarget = totalDistance;
+            bestCombination = [...selectedRoutes];
+            return;
           }
-          
-          if (totalDistance >= targetDistance) {
-            const excess = totalDistance - targetDistance;
-            if (excess < bestExcess) {
-              bestExcess = excess;
-              bestCombination = {
-                routes: [...combination],
-                totalDistance: totalDistance,
-                excess: excess
-              };
-            }
-          }
-          
-          iterations++;
+
+          if (index >= n || totalDistance >= closestAboveTarget) return;
+
+          // Include current route
+          backtrack(
+            index + 1,
+            [...selectedRoutes, sortedRoutes[index]],
+            totalDistance + sortedRoutes[index].routeLength
+          );
+
+          // Exclude current route
+          backtrack(index + 1, selectedRoutes, totalDistance);
+        };
+
+        backtrack(0, [], 0);
+
+        if (bestCombination) {
+          return {
+            routes: bestCombination,
+            totalDistance: bestCombination.reduce((sum, r) => sum + r.routeLength, 0),
+            excess: bestCombination.reduce((sum, r) => sum + r.routeLength, 0) - target
+          };
         }
-        
-        return bestCombination;
+
+        return null; // fallback will trigger if no valid combination is found
       };
       
-      const optimalCombination = findOptimalRoutesCombination();
+      let optimalCombination = findOptimalRoutesCombination();
       
       if (!optimalCombination) {
         // Try a simple greedy approach as fallback
@@ -2352,7 +2466,22 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
         excess: optimalCombination.excess
       });
       
-      // FIXED: Distribute routes across valid days RANDOMLY (instead of sequentially)
+      // NEW: Check if we have too many routes for available days
+      const maxPossibleRoutes = validDays.length * 3; // Allow up to 3 routes per day maximum
+      if (optimalCombination.routes.length > maxPossibleRoutes) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ 
+          error: `Target distance ${targetDistance}km requires ${optimalCombination.routes.length} routes, but only ${validDays.length} working days available (max ${maxPossibleRoutes} routes)`,
+          details: {
+            requiredRoutes: optimalCombination.routes.length,
+            availableDays: validDays.length,
+            maxPossibleRoutes: maxPossibleRoutes,
+            suggestion: "Reduce target distance or select routes with larger distances"
+          }
+        }));
+      }
+      
+      // Distribute routes randomly across valid days
       console.log('Distributing routes randomly across valid days');
       const distribution = [];
       const routesToDistribute = [...optimalCombination.routes];
@@ -2365,26 +2494,26 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       
       // If we have more routes than available days, we'll need to assign multiple routes per day
       const routesPerDay = Math.ceil(routesToDistribute.length / validDays.length);
-      const maxRoutesPerDay = routesPerDay;
+      const maxRoutesPerDay = Math.min(routesPerDay, 3); // Limit to 3 routes per day
       
       // Track how many routes we've assigned to each day
       const dayRouteCount = {};
       validDays.forEach(day => dayRouteCount[day] = 0);
       
-      // Distribute routes randomly instead of sequentially
+      // Distribute routes randomly
       for (let i = 0; i < routesToDistribute.length; i++) {
         const route = routesToDistribute[i];
         
         // Find days that haven't reached the maximum routes per day
         const availableForAssignment = validDays.filter(day => dayRouteCount[day] < maxRoutesPerDay);
         
-        // If all days are at capacity, reset the counter (this handles cases with many routes)
+        // If all days are at capacity, reset the counter
         if (availableForAssignment.length === 0) {
           validDays.forEach(day => dayRouteCount[day] = 0);
           availableForAssignment.push(...validDays);
         }
         
-        // FIXED: Randomly select a day from available days (instead of cycling through sequentially)
+        // Randomly select a day from available days
         const randomIndex = Math.floor(Math.random() * availableForAssignment.length);
         const assignedDay = availableForAssignment[randomIndex];
         
@@ -2406,7 +2535,7 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       
       console.log(`Distribution completed: ${distribution.length} routes across ${new Set(distribution.map(d => d.day)).size} days`);
       
-      // REAL SOLUTION: Use xlsx-populate to preserve ALL existing formatting
+      // Generate Excel file with xlsx-populate (preserves ALL formatting)
       console.log('Generating Excel file with xlsx-populate (preserves ALL formatting)');
       
       if (!template.fileContent) {
@@ -2421,16 +2550,16 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       const workbook = await XlsxPopulate.fromDataAsync(templateBuffer);
       
       // Get the first worksheet
-      const worksheet = workbook.sheet(0); // or workbook.sheet("SheetName")
+      const worksheet = workbook.sheet(0);
       
       // Clear existing data in rows 9-39 (days 1-31) while preserving ALL formatting
       for (let day = 1; day <= 31; day++) {
         const rowIndex = 8 + day;
         
-        // Clear columns B, C, F but preserve ALL formatting (colors, borders, fonts, etc.)
+        // Clear columns B, C, F but preserve ALL formatting
         ['B', 'C', 'F'].forEach(col => {
           const cellRef = `${col}${rowIndex}`;
-          worksheet.cell(cellRef).value(''); // This preserves ALL formatting
+          worksheet.cell(cellRef).value('');
         });
       }
       
@@ -2462,19 +2591,53 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       
       console.log(`Excel updated: ${cellsUpdated} days filled with route data`);
       
+      // SET PORTUGUESE MONTH AND YEAR
+      console.log(`SETTING Portuguese month "${monthNamePT}" in E6 and year ${year} in F6`);
+      worksheet.cell('E6').value(monthNamePT);
+      worksheet.cell('F6').value(year);
+      console.log(`✅ Successfully set Portuguese month "${monthNamePT}" in E6 and year "${year}" in F6`);
+      
+      // SET PERSONAL DETAILS
+      console.log('Setting personal details in cells B45, B46, E45, E46');
+      
+      // B45: Full Name
+      worksheet.cell('B45').value(userDetails.fullName || '');
+      console.log(`Set full name "${userDetails.fullName || 'Empty'}" in B45`);
+      
+      // B46: Address  
+      worksheet.cell('B46').value(userDetails.address || '');
+      console.log(`Set address "${userDetails.address || 'Empty'}" in B46`);
+      
+      // E45: NIF
+      worksheet.cell('E45').value(userDetails.nif || '');
+      console.log(`Set NIF "${userDetails.nif || 'Empty'}" in E45`);
+      
+      // E46: License Plate
+      worksheet.cell('E46').value(userDetails.licensePlate || '');
+      console.log(`Set license plate "${userDetails.licensePlate || 'Empty'}" in E46`);
+      
+      // SET CURRENT DATE IN B47
+      const currentDate = new Date();
+      const formattedDate = `${String(currentDate.getDate()).padStart(2, '0')}/${String(currentDate.getMonth() + 1).padStart(2, '0')}/${currentDate.getFullYear()}`;
+      worksheet.cell('B47').value(formattedDate);
+      console.log(`Set current date "${formattedDate}" in B47`);
+      
       // Generate the output buffer with ALL formatting preserved
       const modifiedBuffer = await workbook.outputAsync();
       
       // Log activity
       try {
-        const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(year, month - 1, 1));
         await logActivity(userId, 'kilometer_map_generated', {
           templateName: template.name,
-          month: `${monthName} ${year}`,
+          month: `${monthNamePT} ${year}`,
           routeCount: distribution.length,
           daysWithRoutes: Object.keys(dayRouteMap).length,
           totalDistance: optimalCombination.totalDistance,
-          targetDistance: targetDistance
+          targetDistance: targetDistance,
+          monthInserted: monthNamePT,
+          yearInserted: year,
+          personalDetailsAdded: true,
+          currentDateAdded: formattedDate
         });
       } catch (logError) {
         console.error('Error logging activity:', logError);
@@ -2491,6 +2654,9 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       console.log(`File: ${filename} (${modifiedBuffer.length} bytes)`);
       console.log(`Routes: ${distribution.length} across ${Object.keys(dayRouteMap).length} days`);
       console.log(`Distance: ${optimalCombination.totalDistance.toFixed(1)}km (target: ${targetDistance}km, excess: ${optimalCombination.excess.toFixed(1)}km)`);
+      console.log(`Portuguese Month: ${monthNamePT} ${year}`);
+      console.log(`Personal Details: ${userDetails.fullName || 'N/A'}, ${userDetails.address || 'N/A'}, ${userDetails.nif || 'N/A'}, ${userDetails.licensePlate || 'N/A'}`);
+      console.log(`Current Date: ${formattedDate}`);
       
       res.writeHead(200);
       res.end(modifiedBuffer);
@@ -2523,6 +2689,7 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
     }
   });
 }
+
 
 else if (req.method === "GET" && req.url === "/companies") {
   // Check if token is valid

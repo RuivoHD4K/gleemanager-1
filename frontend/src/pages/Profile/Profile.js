@@ -16,12 +16,23 @@ const Profile = () => {
     username: '',
     role: '',
     userId: '',
-    createdAt: ''
+    createdAt: '',
+    fullName: '',
+    address: '',
+    nif: '',
+    licensePlate: ''
   });
   
   // Form states
   const [usernameForm, setUsernameForm] = useState({
     username: ''
+  });
+  
+  const [personalDetailsForm, setPersonalDetailsForm] = useState({
+    fullName: '',
+    address: '',
+    nif: '',
+    licensePlate: ''
   });
   
   const [passwordForm, setPasswordForm] = useState({
@@ -46,7 +57,11 @@ const Profile = () => {
       email,
       username: username || email.split('@')[0],
       role: role || 'user',
-      userId
+      userId,
+      fullName: '',
+      address: '',
+      nif: '',
+      licensePlate: ''
     });
     
     setUsernameForm({
@@ -95,7 +110,6 @@ const Profile = () => {
       if (!response.ok) {
         if (response.status === 404) {
           // If user not found, just use the data from localStorage
-          // No need to show an error
           setTimeout(() => {
             setLoading(false);
           }, 500);
@@ -108,12 +122,23 @@ const Profile = () => {
       setUserData(prevData => ({
         ...prevData,
         ...data,
-        username: data.username || prevData.username
+        username: data.username || prevData.username,
+        fullName: data.fullName || '',
+        address: data.address || '',
+        nif: data.nif || '',
+        licensePlate: data.licensePlate || ''
       }));
       
       setUsernameForm(prevForm => ({
         username: data.username || prevForm.username
       }));
+      
+      setPersonalDetailsForm({
+        fullName: data.fullName || '',
+        address: data.address || '',
+        nif: data.nif || '',
+        licensePlate: data.licensePlate || ''
+      });
       
       // Add a slight delay to ensure minimum loading time for better UX
       setTimeout(() => {
@@ -131,6 +156,13 @@ const Profile = () => {
   const handleUsernameChange = (e) => {
     setUsernameForm({
       ...usernameForm,
+      [e.target.name]: e.target.value
+    });
+  };
+  
+  const handlePersonalDetailsChange = (e) => {
+    setPersonalDetailsForm({
+      ...personalDetailsForm,
       [e.target.name]: e.target.value
     });
   };
@@ -188,6 +220,56 @@ const Profile = () => {
     } catch (error) {
       console.error('Error updating username:', error);
       showNotification('Error updating username', 'error');
+      setLoading(false);
+    }
+  };
+  
+  const updatePersonalDetails = async (e) => {
+    e.preventDefault();
+    
+    // Validate NIF if provided (Portuguese tax number - should be 9 digits)
+    if (personalDetailsForm.nif && !/^\d{9}$/.test(personalDetailsForm.nif)) {
+      showNotification('NIF must be exactly 9 digits', 'error');
+      return;
+    }
+    
+    // Validate license plate if provided (basic validation)
+    if (personalDetailsForm.licensePlate && personalDetailsForm.licensePlate.length > 10) {
+      showNotification('License plate cannot exceed 10 characters', 'error');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:5000/users/${userData.userId}/personal-details`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(personalDetailsForm)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update personal details');
+      }
+      
+      // Update userData state
+      setUserData({
+        ...userData,
+        ...personalDetailsForm
+      });
+      
+      showNotification('Personal details updated successfully', 'success');
+      
+      // Add a slight delay before hiding the loading spinner
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
+    } catch (error) {
+      console.error('Error updating personal details:', error);
+      showNotification('Error updating personal details', 'error');
       setLoading(false);
     }
   };
@@ -327,6 +409,13 @@ const Profile = () => {
                 <div className="info-label">User ID:</div>
                 <div className="info-value user-id">{userData.userId}</div>
                 
+                {userData.fullName && (
+                  <>
+                    <div className="info-label">Full Name:</div>
+                    <div className="info-value">{userData.fullName}</div>
+                  </>
+                )}
+                
                 {userData.createdAt && (
                   <>
                     <div className="info-label">Joined:</div>
@@ -337,6 +426,78 @@ const Profile = () => {
                 )}
               </div>
             </div>
+          </div>
+          
+          {/* Personal Details card */}
+          <div className="dashboard-card edit-card">
+            <h3>Personal Details</h3>
+            <form onSubmit={updatePersonalDetails} className="profile-form">
+              <div className="form-group">
+                <label htmlFor="fullName">Full Name</label>
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  value={personalDetailsForm.fullName}
+                  onChange={handlePersonalDetailsChange}
+                  disabled={loading}
+                  placeholder="Enter your full name"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="address">Address</label>
+                <textarea
+                  id="address"
+                  name="address"
+                  value={personalDetailsForm.address}
+                  onChange={handlePersonalDetailsChange}
+                  disabled={loading}
+                  placeholder="Enter your address"
+                  rows="3"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="nif">NIF (Tax Number)</label>
+                <input
+                  type="text"
+                  id="nif"
+                  name="nif"
+                  value={personalDetailsForm.nif}
+                  onChange={handlePersonalDetailsChange}
+                  disabled={loading}
+                  placeholder="9 digits"
+                  maxLength="9"
+                  pattern="[0-9]{9}"
+                />
+                <p className="form-help">Portuguese tax identification number (9 digits)</p>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="licensePlate">License Plate</label>
+                <input
+                  type="text"
+                  id="licensePlate"
+                  name="licensePlate"
+                  value={personalDetailsForm.licensePlate}
+                  onChange={handlePersonalDetailsChange}
+                  disabled={loading}
+                  placeholder="XX-XX-XX"
+                  maxLength="10"
+                  style={{ textTransform: 'uppercase' }}
+                />
+                <p className="form-help">Vehicle license plate number</p>
+              </div>
+              
+              <button 
+                type="submit" 
+                className="action-btn" 
+                disabled={loading}
+              >
+                {loading ? 'Updating...' : 'Update Personal Details'}
+              </button>
+            </form>
           </div>
           
           {/* Update username card */}
