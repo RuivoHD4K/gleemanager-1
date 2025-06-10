@@ -216,7 +216,7 @@ const HolidayApprovalPanel = () => {
               
               <div className="request-actions">
                 <button 
-                  className="action-btn approve-btn"
+                  className="holiday-approval-action-btn approve-btn"
                   onClick={() => approveRequest(request.requestId)}
                   disabled={processingIds.includes(request.requestId)}
                 >
@@ -224,7 +224,7 @@ const HolidayApprovalPanel = () => {
                   {processingIds.includes(request.requestId) ? 'Processing...' : 'Approve'}
                 </button>
                 <button 
-                  className="action-btn reject-btn"
+                  className="holiday-approval-action-btn reject-btn"
                   onClick={() => rejectRequest(request.requestId)}
                   disabled={processingIds.includes(request.requestId)}
                 >

@@ -36,8 +36,11 @@
 
 .km-month-selector {
   display: flex;
+  flex-direction: row !important; /* Explicitly set to row and override dashboard styles */
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-sm);
+  min-width: 200px; /* Ensure enough space */
 }
 
 .km-month-btn {
@@ -52,6 +55,7 @@
   cursor: pointer;
   transition: var(--transition);
   font-size: var(--font-base);
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .km-month-btn:hover {
@@ -65,6 +69,8 @@
   min-width: 140px;
   text-align: center;
   color: var(--text-color);
+  flex-shrink: 0; /* Prevent shrinking */
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 .km-content {
@@ -557,6 +563,7 @@
   .km-month-selector {
     align-self: stretch;
     justify-content: center;
+    flex-direction: row !important; /* Force horizontal layout even in dashboard */
   }
   
   .km-routes-grid {
@@ -620,5 +627,14 @@
   
   .km-header {
     padding: var(--spacing-md);
+  }
+  
+  .km-month-selector {
+    flex-direction: row !important; /* Force horizontal layout even on very small screens */
+    min-width: auto;
+  }
+  
+  .km-current-month {
+    min-width: 120px; /* Slightly smaller on mobile but still visible */
   }
 }

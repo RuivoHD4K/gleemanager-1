@@ -805,7 +805,7 @@ const UserManagement = () => {
                   className="action-btn assign-projects-btn"
                   onClick={handleOpenProjectAssignModal}
                 >
-                  Assign User to Projects
+                  Manage this user's Projects
                 </button>
               )}
             </div>

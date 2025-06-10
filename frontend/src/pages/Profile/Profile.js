@@ -384,7 +384,7 @@ const Profile = () => {
           {/* User information card */}
           <div className="dashboard-card profile-card">
             <h3>User Information</h3>
-            <div className="user-details">
+            <div className="profile-details">
               <div className="user-avatar">
                 <div 
                   className="avatar-large"
@@ -426,78 +426,6 @@ const Profile = () => {
                 )}
               </div>
             </div>
-          </div>
-          
-          {/* Personal Details card */}
-          <div className="dashboard-card edit-card">
-            <h3>Personal Details</h3>
-            <form onSubmit={updatePersonalDetails} className="profile-form">
-              <div className="form-group">
-                <label htmlFor="fullName">Full Name</label>
-                <input
-                  type="text"
-                  id="fullName"
-                  name="fullName"
-                  value={personalDetailsForm.fullName}
-                  onChange={handlePersonalDetailsChange}
-                  disabled={loading}
-                  placeholder="Enter your full name"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="address">Address</label>
-                <textarea
-                  id="address"
-                  name="address"
-                  value={personalDetailsForm.address}
-                  onChange={handlePersonalDetailsChange}
-                  disabled={loading}
-                  placeholder="Enter your address"
-                  rows="3"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="nif">NIF (Tax Number)</label>
-                <input
-                  type="text"
-                  id="nif"
-                  name="nif"
-                  value={personalDetailsForm.nif}
-                  onChange={handlePersonalDetailsChange}
-                  disabled={loading}
-                  placeholder="9 digits"
-                  maxLength="9"
-                  pattern="[0-9]{9}"
-                />
-                <p className="form-help">Portuguese tax identification number (9 digits)</p>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="licensePlate">License Plate</label>
-                <input
-                  type="text"
-                  id="licensePlate"
-                  name="licensePlate"
-                  value={personalDetailsForm.licensePlate}
-                  onChange={handlePersonalDetailsChange}
-                  disabled={loading}
-                  placeholder="XX-XX-XX"
-                  maxLength="10"
-                  style={{ textTransform: 'uppercase' }}
-                />
-                <p className="form-help">Vehicle license plate number</p>
-              </div>
-              
-              <button 
-                type="submit" 
-                className="action-btn" 
-                disabled={loading}
-              >
-                {loading ? 'Updating...' : 'Update Personal Details'}
-              </button>
-            </form>
           </div>
           
           {/* Update username card */}
@@ -583,6 +511,78 @@ const Profile = () => {
                 disabled={loading}
               >
                 {loading ? 'Updating...' : 'Change Password'}
+              </button>
+            </form>
+          </div>
+
+          {/* Personal Details card */}
+          <div className="dashboard-card edit-card">
+            <h3>Personal Details</h3>
+            <form onSubmit={updatePersonalDetails} className="profile-form">
+              <div className="form-group">
+                <label htmlFor="fullName">Full Name</label>
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  value={personalDetailsForm.fullName}
+                  onChange={handlePersonalDetailsChange}
+                  disabled={loading}
+                  placeholder="Enter your full name"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="address">Address</label>
+                <textarea
+                  id="address"
+                  name="address"
+                  value={personalDetailsForm.address}
+                  onChange={handlePersonalDetailsChange}
+                  disabled={loading}
+                  placeholder="Enter your address"
+                  rows="3"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="nif">NIF (Tax Number)</label>
+                <input
+                  type="text"
+                  id="nif"
+                  name="nif"
+                  value={personalDetailsForm.nif}
+                  onChange={handlePersonalDetailsChange}
+                  disabled={loading}
+                  placeholder="9 digits"
+                  maxLength="9"
+                  pattern="[0-9]{9}"
+                />
+                <p className="form-help">Portuguese tax identification number (9 digits)</p>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="licensePlate">License Plate</label>
+                <input
+                  type="text"
+                  id="licensePlate"
+                  name="licensePlate"
+                  value={personalDetailsForm.licensePlate}
+                  onChange={handlePersonalDetailsChange}
+                  disabled={loading}
+                  placeholder="XX-XX-XX"
+                  maxLength="10"
+                  style={{ textTransform: 'uppercase' }}
+                />
+                <p className="form-help">Vehicle license plate number</p>
+              </div>
+              
+              <button 
+                type="submit" 
+                className="action-btn" 
+                disabled={loading}
+              >
+                {loading ? 'Updating...' : 'Update Personal Details'}
               </button>
             </form>
           </div>

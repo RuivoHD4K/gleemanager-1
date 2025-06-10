@@ -1324,7 +1324,7 @@ const HolidayCalendar = () => {
                 
                 <div className="request-actions">
                   <button 
-                    className={`action-btn preview-btn ${previewedRequest?.requestId === request.requestId ? 'active' : ''}`} 
+                    className={`holiday-calenda-action-btn preview-btn ${previewedRequest?.requestId === request.requestId ? 'active' : ''}`} 
                     onClick={() => togglePreviewRequest(request)}
                   >
                     {previewedRequest?.requestId === request.requestId ? (
@@ -1340,14 +1340,14 @@ const HolidayCalendar = () => {
                     )}
                   </button>
                   <button 
-                    className="action-btn approve-btn" 
+                    className="holiday-calenda-action-btn approve-btn" 
                     onClick={() => handleApproveRequest(request.requestId)}
                   >
                     <Check size={16} />
                     <span>Approve</span>
                   </button>
                   <button 
-                    className="action-btn reject-btn" 
+                    className="holiday-calenda-action-btn reject-btn" 
                     onClick={() => handleRejectRequest(request.requestId)}
                   >
                     <X size={16} />

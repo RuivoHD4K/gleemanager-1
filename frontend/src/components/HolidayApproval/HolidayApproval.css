@@ -183,7 +183,7 @@
   gap: var(--spacing-md);
 }
 
-.action-btn {
+.holiday-approval-action-btn {
   flex: 1;
   display: flex;
   align-items: center;
