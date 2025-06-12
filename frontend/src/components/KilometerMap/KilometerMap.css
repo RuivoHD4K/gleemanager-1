@@ -1,6 +1,6 @@
 /* KilometerMapCard.css */
 .kilometer-map-card {
-  height: 100%;
+  height: 597.44;
   display: flex;
   flex-direction: column;
   background-color: white;
@@ -22,6 +22,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  position: relative;
 }
 
 .km-header-title h3 {
@@ -32,6 +33,63 @@
 
 .km-icon {
   color: var(--primary-color);
+}
+
+/* Info Tooltip */
+.km-info-tooltip {
+  position: relative;
+  display: inline-block;
+  margin-left: var(--spacing-xs);
+}
+
+.km-info-icon {
+  color: var(--info-color);
+  cursor: help;
+  transition: var(--transition);
+}
+
+.km-info-icon:hover {
+  color: var(--primary-color);
+}
+
+.km-tooltip-content {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  width: 280px;
+  background-color: #333;
+  color: white;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: opacity 0.3s, visibility 0.3s;
+  font-size: var(--font-sm);
+  line-height: 1.4;
+}
+
+.km-tooltip-content::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-bottom-color: #333;
+}
+
+.km-info-tooltip:hover .km-tooltip-content {
+  visibility: visible;
+  opacity: 1;
+}
+
+.km-tooltip-content p {
+  margin: 0;
 }
 
 .km-month-selector {
@@ -77,7 +135,7 @@
   flex: 1;
   padding: var(--spacing-lg);
   overflow-y: auto;
-  max-height: calc(100vh - 200px);
+  max-height: 400px; /* Consistent height for dashboard cards */
 }
 
 .km-section {
@@ -143,55 +201,6 @@
   line-height: 1.4;
 }
 
-/* Debug Section */
-.km-debug-section {
-  background-color: rgba(0, 119, 204, 0.05);
-  border: 1px solid rgba(0, 119, 204, 0.2);
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--spacing-md);
-}
-
-.km-debug-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  background-color: rgba(0, 119, 204, 0.1);
-  padding: var(--spacing-sm) var(--spacing-md);
-  color: var(--info-color);
-  font-weight: 600;
-  font-size: var(--font-sm);
-}
-
-.km-debug-content {
-  padding: var(--spacing-md);
-  color: var(--info-color);
-  font-size: var(--font-sm);
-  line-height: 1.4;
-}
-
-.km-debug-content p {
-  margin: 0 0 var(--spacing-xs) 0;
-}
-
-.km-debug-content details {
-  margin-top: var(--spacing-sm);
-}
-
-.km-debug-content summary {
-  cursor: pointer;
-  font-weight: 600;
-  margin-bottom: var(--spacing-xs);
-}
-
-.km-debug-content ul {
-  margin: var(--spacing-xs) 0 0 var(--spacing-md);
-  padding: 0;
-}
-
-.km-debug-content li {
-  margin-bottom: var(--spacing-xs);
-}
-
 /* Warning Message */
 .km-warning {
   background-color: rgba(255, 193, 7, 0.1);
@@ -202,56 +211,148 @@
   margin-top: var(--spacing-sm);
 }
 
-/* Route Selection */
-.km-routes-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--spacing-sm);
+/* Route Selection - Dropdown Style */
+.km-routes-dropdown-container {
+  position: relative;
   margin-bottom: var(--spacing-md);
 }
 
-.km-route-card {
+.km-routes-dropdown-button {
+  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-md);
+  background-color: white;
   border: 2px solid var(--light-gray);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition);
-  background-color: white;
+  font-size: var(--font-base);
+  color: var(--text-color);
+  text-align: left;
 }
 
-.km-route-card:hover {
+.km-routes-dropdown-button:hover {
   border-color: var(--primary-light);
+  background-color: rgba(248, 84, 68, 0.02);
+}
+
+.km-routes-dropdown-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.km-routes-dropdown-arrow {
+  transition: transform 0.2s ease;
+  font-size: 12px;
+  color: #666;
+  margin-left: var(--spacing-sm);
+}
+
+.km-routes-dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.km-routes-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 2px solid var(--primary-light);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  box-shadow: var(--card-shadow);
+  z-index: 1000;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.km-routes-dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  background: transparent;
+}
+
+.km-routes-dropdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: var(--transition);
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.km-routes-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.km-routes-dropdown-item:hover {
   background-color: rgba(248, 84, 68, 0.05);
 }
 
-.km-route-card.selected {
-  border-color: var(--primary-color);
+.km-routes-dropdown-item.selected {
   background-color: rgba(248, 84, 68, 0.1);
+  border-left: 3px solid var(--primary-color);
 }
 
-.km-route-info {
+.km-route-item-info {
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
-.km-route-name {
+.km-route-item-name {
   font-weight: 500;
   color: var(--text-color);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 2px;
+  font-size: var(--font-sm);
 }
 
-.km-route-distance {
-  font-size: var(--font-sm);
+.km-route-item-distance {
+  font-size: var(--font-xs);
   color: var(--primary-color);
   font-weight: 600;
 }
 
-.km-selected-icon {
+.km-route-item-check {
   color: var(--success-color);
+  flex-shrink: 0;
+}
+
+.km-routes-dropdown-empty {
+  padding: var(--spacing-md);
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  font-size: var(--font-sm);
+}
+
+/* Custom scrollbar for dropdown */
+.km-routes-dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.km-routes-dropdown-menu::-webkit-scrollbar-track {
+  background: var(--gray-bg);
+  border-radius: 3px;
+}
+
+.km-routes-dropdown-menu::-webkit-scrollbar-thumb {
+  background: var(--light-gray);
+  border-radius: 3px;
+}
+
+.km-routes-dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
 }
 
 .km-selection-summary {
@@ -264,14 +365,7 @@
   color: #666;
 }
 
-.km-no-data {
-  text-align: center;
-  color: #666;
-  font-style: italic;
-  padding: var(--spacing-lg);
-  background-color: var(--gray-bg);
-  border-radius: var(--radius-sm);
-}
+
 
 /* Template Selection */
 .km-template-select {
@@ -317,81 +411,6 @@
   color: var(--text-color);
 }
 
-/* Advanced Options */
-.km-advanced-toggle {
-  margin-bottom: var(--spacing-md);
-}
-
-.km-toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--primary-color);
-  font-size: var(--font-sm);
-  font-weight: 500;
-  transition: var(--transition);
-}
-
-.km-toggle-btn:hover {
-  color: var(--primary-dark);
-}
-
-.km-toggle-arrow {
-  transition: transform 0.2s ease;
-  font-size: var(--font-xs);
-}
-
-.km-toggle-arrow.open {
-  transform: rotate(180deg);
-}
-
-.km-advanced-options {
-  background-color: var(--gray-bg);
-  padding: var(--spacing-md);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--light-gray);
-}
-
-.km-option-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-sm);
-}
-
-.km-option-row:last-child {
-  margin-bottom: 0;
-}
-
-.km-option-row label {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  font-size: var(--font-sm);
-  color: var(--text-color);
-  cursor: pointer;
-}
-
-.km-option-select {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border: 1px solid var(--light-gray);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-sm);
-  background-color: white;
-}
-
-.km-option-number {
-  width: 60px;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border: 1px solid var(--light-gray);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-sm);
-  text-align: center;
-}
-
 /* Results Section */
 .km-results {
   background-color: rgba(40, 167, 69, 0.05);
@@ -433,49 +452,14 @@
   margin-top: var(--spacing-md);
 }
 
-.km-distribution-list {
-  background-color: white;
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-sm);
-}
-
-.km-distribution-item {
-  display: grid;
-  grid-template-columns: 100px 1fr auto;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xs) 0;
-  border-bottom: 1px solid var(--light-gray);
-  align-items: center;
-}
-
-.km-distribution-item:last-child {
-  border-bottom: none;
-}
-
-.km-dist-date {
+.km-info-text {
   font-size: var(--font-sm);
   color: #666;
-  font-weight: 500;
+  line-height: 1.4;
 }
 
-.km-dist-route {
-  font-size: var(--font-sm);
-  color: var(--text-color);
-}
-
-.km-dist-distance {
-  font-size: var(--font-sm);
-  color: var(--primary-color);
-  font-weight: 600;
-  text-align: right;
-}
-
-.km-distribution-more {
-  text-align: center;
-  padding: var(--spacing-sm);
-  color: #666;
-  font-style: italic;
-  font-size: var(--font-sm);
+.km-info-text p {
+  margin: 0;
 }
 
 /* Actions */
@@ -520,36 +504,158 @@
   animation: spin 1s linear infinite;
 }
 
-/* Info Section */
-.km-info {
+/* Modal Styles */
+.km-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  background-color: rgba(0, 119, 204, 0.05);
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(0, 119, 204, 0.2);
+  justify-content: center;
+  align-items: center;
+  z-index: var(--z-modal);
 }
 
-.km-info svg {
-  color: var(--info-color);
+.km-modal-content {
+  background-color: white;
+  border-radius: var(--radius-md);
+  padding: 0;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: var(--card-shadow);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.km-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--light-gray);
+  background-color: var(--gray-bg);
+}
+
+.km-modal-header h3 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: var(--font-lg);
+}
+
+.km-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s ease;
+}
+
+.km-modal-close:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.km-modal-body {
+  padding: var(--spacing-lg);
+}
+
+.km-modal-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background-color: rgba(255, 193, 7, 0.1);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.km-warning-icon {
+  color: var(--warning-color);
   flex-shrink: 0;
   margin-top: 2px;
 }
 
-.km-info-text {
+.km-modal-warning p {
+  margin: 0;
+  color: var(--text-color);
   font-size: var(--font-sm);
-  color: #666;
-  line-height: 1.4;
 }
 
-.km-info-text p {
-  margin: 0 0 var(--spacing-xs) 0;
+.km-missing-fields {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--spacing-lg) 0;
+  background-color: var(--gray-bg);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
 }
 
-.km-info-text p:last-child {
-  margin-bottom: 0;
+.km-missing-fields li {
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--light-gray);
+  color: var(--danger-color);
+  font-weight: 500;
+}
+
+.km-missing-fields li:last-child {
+  border-bottom: none;
+}
+
+.km-modal-question {
+  margin: 0 0 var(--spacing-lg) 0;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.km-modal-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--light-gray);
+  background-color: var(--gray-bg);
+  justify-content: flex-end;
+}
+
+.km-modal-btn {
+  padding: 0.8rem 1.2rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
   font-weight: 600;
-  color: var(--info-color);
+  font-size: var(--font-base);
+  transition: var(--transition);
+  min-width: 100px;
+}
+
+.km-cancel-btn {
+  background-color: var(--light-gray);
+  color: var(--text-color);
+}
+
+.km-cancel-btn:hover {
+  background-color: #bbb;
+}
+
+.km-create-anyway-btn {
+  background-color: var(--warning-color);
+  color: #333;
+}
+
+.km-create-anyway-btn:hover {
+  background-color: #e0a800;
+}
+
+.km-profile-btn {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.km-profile-btn:hover {
+  background-color: var(--primary-dark);
 }
 
 /* Responsive Design */
@@ -566,18 +672,15 @@
     flex-direction: row !important; /* Force horizontal layout even in dashboard */
   }
   
-  .km-routes-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .km-route-card {
+  .km-routes-dropdown-item {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-sm);
   }
   
-  .km-selected-icon {
+  .km-route-item-check {
     align-self: flex-end;
+    margin-top: -20px;
   }
   
   .km-selection-summary {
@@ -594,24 +697,31 @@
     grid-template-columns: 1fr;
   }
   
-  .km-distribution-item {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-xs);
-    text-align: left;
-  }
-  
-  .km-dist-distance {
-    text-align: left;
-  }
-  
-  .km-option-row {
+  .km-modal-actions {
     flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-xs);
   }
   
-  .km-error-header {
-    flex-wrap: wrap;
+  .km-modal-btn {
+    width: 100%;
+  }
+
+  /* Tooltip adjustments for mobile */
+  .km-tooltip-content {
+    width: 260px;
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+  
+  .km-tooltip-content::before {
+    left: auto;
+    right: 20px;
+    transform: none;
+  }
+
+  /* Dropdown adjustments for mobile */
+  .km-routes-dropdown-menu {
+    max-height: 200px;
   }
 }
 
@@ -636,5 +746,86 @@
   
   .km-current-month {
     min-width: 120px; /* Slightly smaller on mobile but still visible */
+  }
+
+  .km-routes-dropdown-menu {
+    max-height: 180px; /* Smaller on mobile */
+  }
+
+  /* Adjust tooltip for very small screens */
+  .km-tooltip-content {
+    width: 240px;
+  }
+}
+
+/* Dashboard integration styles */
+.user-dash-grid-span-2 .kilometer-map-card {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.user-dash-grid-span-2 .kilometer-map-card .km-header {
+  padding: 0 0 var(--spacing-md) 0;
+  background: transparent;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.user-dash-grid-span-2 .kilometer-map-card .km-content {
+  padding: var(--spacing-md) 0 0 0;
+  max-height: 500px;
+}
+
+.user-dash-grid-span-2 .kilometer-map-card .km-section {
+  margin-bottom: var(--spacing-md);
+}
+
+.user-dash-grid-span-2 .kilometer-map-card .km-routes-scroll {
+  max-height: 180px; /* Smaller in dashboard */
+}
+
+.user-dash-grid-span-2 .kilometer-map-card .km-route-card {
+  padding: var(--spacing-sm);
+}
+
+.user-dash-grid-span-2 .kilometer-map-card .km-generate-btn {
+  min-width: auto;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-sm);
+}
+
+.user-dash-grid-span-2 .kilometer-map-card .km-results-grid {
+  grid-template-columns: 1fr;
+}
+
+.user-dash-grid-span-2 .kilometer-map-card .km-month-selector {
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.user-dash-grid-span-2 .kilometer-map-card .km-current-month {
+  min-width: auto;
+  font-size: var(--font-sm);
+}
+
+/* Responsive adjustments for dashboard */
+@media (max-width: 768px) {
+  .user-dash-grid-span-2 .kilometer-map-card .km-header {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+  }
+  
+  .user-dash-grid-span-2 .kilometer-map-card .km-month-selector {
+    align-self: stretch;
+    justify-content: center;
+  }
+
+  .user-dash-grid-span-2 .kilometer-map-card .km-routes-dropdown-menu {
+    max-height: 140px;
   }
 }

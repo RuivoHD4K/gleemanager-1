@@ -272,11 +272,10 @@ function App() {
                 } 
               />
 
+              {/* User Dashboard route - accessible by all users */}
               <Route 
                 path="user-dashboard" 
-                element={
-                    <UserDashboard />
-                } 
+                element={<UserDashboard />} 
               />
               
               {/* Holiday Calendar route - accessible by all users */}
@@ -285,8 +284,10 @@ function App() {
                 element={<HolidayCalendar />} 
               />
               
-              {/* Add more routes as needed */}
+              {/* Profile route - accessible by all users */}
               <Route path="profile" element={<Profile />} />
+              
+              {/* Settings and Help routes */}
               <Route path="settings" element={<div>Settings Page Coming Soon</div>} />
               <Route path="help" element={<div>Help Page Coming Soon</div>} />
             </Route>

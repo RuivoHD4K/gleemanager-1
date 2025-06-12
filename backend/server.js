@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require("uuid"); // You'll need to install this: npm inst
 const fs = require("fs");
 const path = require("path");
 const XlsxPopulate = require('xlsx-populate');
+const ExcelJS = require('exceljs');
 const busboy = require('busboy'); // You'll need to install this: npm install busboy
 const MAX_ACTIVITIES = 50;
 const activityLog = [];
@@ -2146,9 +2147,6 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
   
   req.on("end", async () => {
     try {
-      console.log('=== KILOMETER MAP GENERATION START ===');
-      console.log('Request received at:', new Date().toISOString());
-      
       let requestData;
       try {
         requestData = JSON.parse(body);
@@ -2157,14 +2155,6 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
         res.writeHead(400, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: "Invalid JSON in request body" }));
       }
-      
-      console.log('Request data:', {
-        templateId: requestData.templateId,
-        year: requestData.year,
-        month: requestData.month,
-        selectedRoutes: requestData.selectedRoutes?.length,
-        targetDistance: requestData.targetDistance
-      });
       
       // Validate request data
       if (!requestData.templateId) {
@@ -2193,15 +2183,12 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       ];
       const monthNamePT = PORTUGUESE_MONTHS[month - 1];
       
-      console.log(`PORTUGUESE MONTH DEBUG: month=${month}, monthNamePT=${monthNamePT}`);
-      
       if (targetDistance <= 0) {
         res.writeHead(400, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: "Target distance must be greater than 0" }));
       }
       
       // Get the template from database
-      console.log(`Getting template ${requestData.templateId} from database`);
       const templateParams = new GetCommand({
         TableName: "ExcelTemplates",
         Key: { templateId: requestData.templateId }
@@ -2210,16 +2197,13 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       const templateResult = await dynamoDB.send(templateParams);
       
       if (!templateResult.Item) {
-        console.error('Template not found:', requestData.templateId);
         res.writeHead(404, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: `Template with ID ${requestData.templateId} not found` }));
       }
       
       const template = templateResult.Item;
-      console.log('Template found:', template.name);
       
       // Get user personal details
-      console.log('Fetching user personal details from database');
       const userParams = new GetCommand({
         TableName: "Users",
         Key: { userId }
@@ -2233,15 +2217,8 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       }
       
       const userDetails = userResult.Item;
-      console.log('User details found:', {
-        fullName: userDetails.fullName || 'Not set',
-        address: userDetails.address ? 'Set' : 'Not set',
-        nif: userDetails.nif || 'Not set',
-        licensePlate: userDetails.licensePlate || 'Not set'
-      });
       
       // Get selected routes from database
-      console.log('Fetching selected routes from database');
       const routePromises = requestData.selectedRoutes.map(routeId => {
         return dynamoDB.send(new GetCommand({
           TableName: "Routes",
@@ -2259,10 +2236,7 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
         return res.end(JSON.stringify({ error: "No valid routes found with the provided IDs" }));
       }
       
-      console.log(`Found ${selectedRouteData.length} valid routes`);
-      
       // Get user holidays for the specified month
-      console.log(`Fetching user holidays for ${year}-${String(month).padStart(2, '0')}`);
       const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
       let userHolidays = [];
       
@@ -2280,13 +2254,11 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
         if (userHolidaysResult.Items && userHolidaysResult.Items.length > 0) {
           userHolidays = userHolidaysResult.Items[0].days || [];
         }
-        console.log('User holidays:', userHolidays);
       } catch (holidayError) {
         console.warn('Could not fetch user holidays:', holidayError);
       }
       
       // Get national holidays for Portugal
-      console.log(`Fetching national holidays for Portugal ${year}`);
       let nationalHolidays = [];
       
       try {
@@ -2330,13 +2302,11 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
         nationalHolidays = nationalData
           .filter(holiday => holiday.date.startsWith(`${year}-${String(month).padStart(2, '0')}`))
           .map(holiday => parseInt(holiday.date.substring(8, 10), 10));
-        console.log('National holidays:', nationalHolidays);
       } catch (holidayError) {
         console.warn('Could not fetch national holidays:', holidayError.message);
       }
       
       // Calculate valid days (excluding weekends, user holidays, national holidays)
-      console.log('Calculating valid days for the month');
       const daysInMonth = new Date(year, month, 0).getDate();
       const validDays = [];
       
@@ -2353,9 +2323,6 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
         }
       }
       
-      console.log(`Valid working days: ${validDays.length} out of ${daysInMonth} days`);
-      console.log('Valid days:', validDays);
-      
       if (validDays.length === 0) {
         res.writeHead(400, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ 
@@ -2369,9 +2336,7 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
         }));
       }
       
-      // RESTORED: Original working algorithm
-      console.log('Finding optimal route combination for target:', targetDistance);
-      
+      // Find optimal route combination
       const findOptimalRoutesCombination = () => {
         const maxDays = validDays.length;
         const target = targetDistance;
@@ -2460,13 +2425,7 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
         }
       }
       
-      console.log('Optimal combination found:', {
-        routeCount: optimalCombination.routes.length,
-        totalDistance: optimalCombination.totalDistance,
-        excess: optimalCombination.excess
-      });
-      
-      // NEW: Check if we have too many routes for available days
+      // Check if we have too many routes for available days
       const maxPossibleRoutes = validDays.length * 3; // Allow up to 3 routes per day maximum
       if (optimalCombination.routes.length > maxPossibleRoutes) {
         res.writeHead(400, { "Content-Type": "application/json" });
@@ -2482,7 +2441,6 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       }
       
       // Distribute routes randomly across valid days
-      console.log('Distributing routes randomly across valid days');
       const distribution = [];
       const routesToDistribute = [...optimalCombination.routes];
       
@@ -2529,15 +2487,9 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
           distance: route.routeLength,
           routeIndex: i + 1
         });
-        
-        console.log(`Assigned route ${i + 1} to day ${assignedDay}: ${route.startLocation} → ${route.destination} (${route.routeLength}km)`);
       }
       
-      console.log(`Distribution completed: ${distribution.length} routes across ${new Set(distribution.map(d => d.day)).size} days`);
-      
       // Generate Excel file with xlsx-populate (preserves ALL formatting)
-      console.log('Generating Excel file with xlsx-populate (preserves ALL formatting)');
-      
       if (!template.fileContent) {
         res.writeHead(400, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: "Template file content is missing" }));
@@ -2589,41 +2541,115 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
         }
       }
       
-      console.log(`Excel updated: ${cellsUpdated} days filled with route data`);
-      
       // SET PORTUGUESE MONTH AND YEAR
-      console.log(`SETTING Portuguese month "${monthNamePT}" in E6 and year ${year} in F6`);
       worksheet.cell('E6').value(monthNamePT);
       worksheet.cell('F6').value(year);
-      console.log(`✅ Successfully set Portuguese month "${monthNamePT}" in E6 and year "${year}" in F6`);
       
       // SET PERSONAL DETAILS
-      console.log('Setting personal details in cells B45, B46, E45, E46');
-      
-      // B45: Full Name
       worksheet.cell('B45').value(userDetails.fullName || '');
-      console.log(`Set full name "${userDetails.fullName || 'Empty'}" in B45`);
-      
-      // B46: Address  
       worksheet.cell('B46').value(userDetails.address || '');
-      console.log(`Set address "${userDetails.address || 'Empty'}" in B46`);
-      
-      // E45: NIF
       worksheet.cell('E45').value(userDetails.nif || '');
-      console.log(`Set NIF "${userDetails.nif || 'Empty'}" in E45`);
-      
-      // E46: License Plate
       worksheet.cell('E46').value(userDetails.licensePlate || '');
-      console.log(`Set license plate "${userDetails.licensePlate || 'Empty'}" in E46`);
       
       // SET CURRENT DATE IN B47
       const currentDate = new Date();
       const formattedDate = `${String(currentDate.getDate()).padStart(2, '0')}/${String(currentDate.getMonth() + 1).padStart(2, '0')}/${currentDate.getFullYear()}`;
       worksheet.cell('B47').value(formattedDate);
-      console.log(`Set current date "${formattedDate}" in B47`);
       
-      // Generate the output buffer with ALL formatting preserved
-      const modifiedBuffer = await workbook.outputAsync();
+      // Generate the xlsx-populate buffer first (preserves all formatting)
+      let modifiedBuffer = await workbook.outputAsync();
+      
+      // === SIGNATURE PROCESSING WITH EXCELJS ===
+      console.log('=== SIGNATURE PROCESSING START ===');
+      let signatureAdded = false;
+      
+      if (userDetails.signatureUrl) {
+        console.log('✅ User has signatureUrl field');
+        console.log('SignatureUrl type:', typeof userDetails.signatureUrl);
+        console.log('SignatureUrl length:', userDetails.signatureUrl.length);
+        console.log('SignatureUrl first 100 chars:', userDetails.signatureUrl.substring(0, 100));
+        
+        try {
+          // Extract base64 data from data URL (format: data:image/png;base64,...)
+          console.log('🔍 Attempting to parse signature URL format...');
+          const base64Match = userDetails.signatureUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+          
+          if (base64Match) {
+            console.log('✅ Signature URL format is valid data URL');
+            console.log('Image type detected:', userDetails.signatureUrl.match(/^data:image\/([^;]+);/)[1]);
+            
+            const base64Data = base64Match[1];
+            console.log('Base64 data length:', base64Data.length);
+            console.log('Base64 data first 50 chars:', base64Data.substring(0, 50));
+            
+            try {
+              console.log('🔄 Creating buffer from base64 data...');
+              const signatureBuffer = Buffer.from(base64Data, 'base64');
+              console.log('✅ Buffer created successfully, size:', signatureBuffer.length, 'bytes');
+              
+              // Now use ExcelJS to add the image to the already-processed workbook
+              console.log('🔄 Loading workbook with ExcelJS for image insertion...');
+              const excelWorkbook = new ExcelJS.Workbook();
+              
+              console.log('🔄 Reading xlsx-populate buffer with ExcelJS...');
+              await excelWorkbook.xlsx.load(modifiedBuffer);
+              console.log('✅ ExcelJS workbook loaded successfully');
+              
+              const excelWorksheet = excelWorkbook.getWorksheet(1); // Get first worksheet
+              console.log('✅ ExcelJS worksheet obtained');
+              
+              console.log('🔄 Adding image to ExcelJS workbook...');
+              const imageId = excelWorkbook.addImage({
+                buffer: signatureBuffer,
+                extension: 'jpeg', // or 'png' based on the image type
+              });
+              console.log('✅ Image added to ExcelJS workbook, imageId:', imageId);
+              
+              console.log('🔄 Positioning image in cell D47...');
+              // Add image to cell D47
+              excelWorksheet.addImage(imageId, {
+                tl: { col: 3, row: 46 }, // D47 (0-indexed: D=3, 47=46)
+                ext: { width: 100, height: 50 }
+              });
+              console.log('✅ Image positioned in D47 successfully');
+              
+              console.log('🔄 Generating final buffer with ExcelJS...');
+              modifiedBuffer = await excelWorkbook.xlsx.writeBuffer();
+              console.log('✅ Final buffer generated with image');
+              
+              signatureAdded = true;
+              console.log('🎉 Successfully added signature image to D47 using ExcelJS');
+              
+            } catch (excelJsError) {
+              console.error('❌ Error with ExcelJS image processing:', excelJsError);
+              console.error('ExcelJS error type:', excelJsError.constructor.name);
+              console.error('ExcelJS error message:', excelJsError.message);
+              console.error('ExcelJS error stack:', excelJsError.stack);
+              // Continue without image - don't fail the entire operation
+            }
+            
+          } else {
+            console.log('❌ Invalid signature URL format - regex match failed');
+            console.log('Expected format: data:image/{type};base64,{data}');
+            console.log('Actual format check:');
+            console.log('- Starts with "data:image/":', userDetails.signatureUrl.startsWith('data:image/'));
+            console.log('- Contains ";base64,":', userDetails.signatureUrl.includes(';base64,'));
+            console.log('- Full URL length:', userDetails.signatureUrl.length);
+          }
+        } catch (imageError) {
+          console.error('❌ Error processing signature image:', imageError);
+          console.error('Image error type:', imageError.constructor.name);
+          console.error('Image error message:', imageError.message);
+          console.error('Image error stack:', imageError.stack);
+        }
+      } else {
+        console.log('❌ No signatureUrl found in user details');
+        console.log('User details keys:', Object.keys(userDetails));
+        console.log('SignatureUrl value:', userDetails.signatureUrl);
+      }
+      
+      console.log('Signature added result:', signatureAdded);
+      console.log('=== SIGNATURE PROCESSING END ===');
       
       // Log activity
       try {
@@ -2637,6 +2663,7 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
           monthInserted: monthNamePT,
           yearInserted: year,
           personalDetailsAdded: true,
+          signatureAdded: signatureAdded, // Log whether signature was added
           currentDateAdded: formattedDate
         });
       } catch (logError) {
@@ -2656,6 +2683,7 @@ else if (req.method === "POST" && req.url === "/generate-kilometer-map") {
       console.log(`Distance: ${optimalCombination.totalDistance.toFixed(1)}km (target: ${targetDistance}km, excess: ${optimalCombination.excess.toFixed(1)}km)`);
       console.log(`Portuguese Month: ${monthNamePT} ${year}`);
       console.log(`Personal Details: ${userDetails.fullName || 'N/A'}, ${userDetails.address || 'N/A'}, ${userDetails.nif || 'N/A'}, ${userDetails.licensePlate || 'N/A'}`);
+      console.log(`Signature Added: ${signatureAdded ? 'Yes' : 'No'}`);
       console.log(`Current Date: ${formattedDate}`);
       
       res.writeHead(200);

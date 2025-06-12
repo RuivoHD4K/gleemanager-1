@@ -1,6 +1,7 @@
 // Simplified KilometerMap.js - Server handles all logic
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '../Toast/ToastContext';
 import { 
   MapPin, Calculator, Calendar, 
@@ -12,6 +13,7 @@ import './KilometerMap.css';
 
 const KilometerMapCard = () => {
   const toast = useToast();
+  const navigate = useNavigate();
   
   // State management
   const [routes, setRoutes] = useState([]);
@@ -23,12 +25,51 @@ const KilometerMapCard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationResult, setGenerationResult] = useState(null);
   const [errorDetails, setErrorDetails] = useState('');
+  const [showMissingDataModal, setShowMissingDataModal] = useState(false);
+  const [missingFields, setMissingFields] = useState([]);
+  const [userDetails, setUserDetails] = useState(null);
+  const [showRoutesDropdown, setShowRoutesDropdown] = useState(false);
 
   // Fetch initial data
   useEffect(() => {
     fetchRoutes();
     fetchTemplates();
+    fetchUserDetails();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.km-routes-dropdown-container')) {
+        setShowRoutesDropdown(false);
+      }
+    };
+
+    if (showRoutesDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showRoutesDropdown]);
+
+  const fetchUserDetails = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const userId = localStorage.getItem("userId");
+      
+      if (!token || !userId) return;
+      
+      const response = await fetch(`http://localhost:5000/users/${userId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUserDetails(data);
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    }
+  };
 
   const fetchRoutes = async () => {
     try {
@@ -81,7 +122,38 @@ const KilometerMapCard = () => {
     );
   };
 
-  const generateKilometerMap = async () => {
+  const getSelectedRoutesText = () => {
+    if (selectedRoutes.length === 0) {
+      return "Select routes...";
+    }
+    if (selectedRoutes.length === 1) {
+      const route = routes.find(r => r.routeId === selectedRoutes[0]);
+      return route ? `${route.startLocation} → ${route.destination}` : "1 route selected";
+    }
+    return `${selectedRoutes.length} routes selected`;
+  };
+
+  const toggleRoutesDropdown = () => {
+    setShowRoutesDropdown(!showRoutesDropdown);
+  };
+
+  const closeRoutesDropdown = () => {
+    setShowRoutesDropdown(false);
+  };
+
+  const checkMissingPersonalData = () => {
+    if (!userDetails) return [];
+    
+    const missing = [];
+    if (!userDetails.fullName || userDetails.fullName.trim() === '') missing.push('Full Name');
+    if (!userDetails.address || userDetails.address.trim() === '') missing.push('Address');
+    if (!userDetails.nif || userDetails.nif.trim() === '') missing.push('NIF');
+    if (!userDetails.licensePlate || userDetails.licensePlate.trim() === '') missing.push('License Plate');
+    
+    return missing;
+  };
+
+  const generateKilometerMap = async (skipCheck = false) => {
     // Clear previous errors
     setErrorDetails('');
     
@@ -102,6 +174,16 @@ const KilometerMapCard = () => {
       setErrorDetails('Please enter a valid target distance');
       toast.showError('Please enter a valid target distance');
       return;
+    }
+
+    // Check for missing personal data unless skipping
+    if (!skipCheck) {
+      const missing = checkMissingPersonalData();
+      if (missing.length > 0) {
+        setMissingFields(missing);
+        setShowMissingDataModal(true);
+        return;
+      }
     }
 
     setIsGenerating(true);
@@ -207,12 +289,36 @@ const KilometerMapCard = () => {
     setErrorDetails('');
   };
 
+  const closeMissingDataModal = () => {
+    setShowMissingDataModal(false);
+    setMissingFields([]);
+  };
+
+  const handleCreateAnyway = () => {
+    closeMissingDataModal();
+    generateKilometerMap(true); // Skip the check
+  };
+
+  const handleGoToProfile = () => {
+    navigate('/profile');
+  };
+
   return (
     <div className="kilometer-map-card">
       <div className="km-header">
         <div className="km-header-title">
           <MapPin size={24} className="km-icon" />
           <h3>Kilometer Map Generator</h3>
+          <div className="km-info-tooltip">
+            <Info size={18} className="km-info-icon" />
+            <div className="km-tooltip-content">
+              <p>
+                Select your routes and target distance for <strong>{formatMonth(currentMonth)}</strong>. 
+                The system will automatically avoid weekends, your personal holidays, and national holidays, 
+                then distribute your selected routes to reach the target distance.
+              </p>
+            </div>
+          </div>
         </div>
         <div className="km-month-selector">
           <button onClick={() => changeMonth(-1)} className="km-month-btn">❮</button>
@@ -236,46 +342,50 @@ const KilometerMapCard = () => {
           </div>
         )}
 
-        {/* Info Section */}
-        <div className="km-section">
-          <h4><Info size={18} /> How it works</h4>
-          <div className="km-info">
-            <Info size={16} />
-            <div className="km-info-text">
-              <p>
-                Select your routes and target distance for <strong>{formatMonth(currentMonth)}</strong>. 
-                The system will automatically avoid weekends, your personal holidays, and national holidays, 
-                then distribute your selected routes to reach the target distance.
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div className="km-section">
           <h4><Route size={18} /> Select Routes</h4>
-          <div className="km-routes-grid">
-            {routes.length === 0 ? (
-              <p className="km-no-data">No routes available. Please add routes first.</p>
-            ) : (
-              routes.map(route => (
-                <div 
-                  key={route.routeId} 
-                  className={`km-route-card ${selectedRoutes.includes(route.routeId) ? 'selected' : ''}`}
-                  onClick={() => handleRouteToggle(route.routeId)}
-                >
-                  <div className="km-route-info">
-                    <span className="km-route-name">
-                      {route.startLocation} → {route.destination}
-                    </span>
-                    <span className="km-route-distance">{route.routeLength} km</span>
-                  </div>
-                  {selectedRoutes.includes(route.routeId) && (
-                    <CheckCircle size={16} className="km-selected-icon" />
-                  )}
-                </div>
-              ))
+          <div className="km-routes-dropdown-container">
+            <button 
+              className="km-routes-dropdown-button" 
+              onClick={toggleRoutesDropdown}
+              type="button"
+            >
+              <span className="km-routes-dropdown-text">{getSelectedRoutesText()}</span>
+              <span className={`km-routes-dropdown-arrow ${showRoutesDropdown ? 'open' : ''}`}>▼</span>
+            </button>
+            
+            {showRoutesDropdown && (
+              <div className="km-routes-dropdown-menu">
+                {routes.length === 0 ? (
+                  <div className="km-routes-dropdown-empty">No routes available. Please add routes first.</div>
+                ) : (
+                  routes.map(route => (
+                    <div 
+                      key={route.routeId} 
+                      className={`km-routes-dropdown-item ${selectedRoutes.includes(route.routeId) ? 'selected' : ''}`}
+                      onClick={() => handleRouteToggle(route.routeId)}
+                    >
+                      <div className="km-route-item-info">
+                        <span className="km-route-item-name">
+                          {route.startLocation} → {route.destination}
+                        </span>
+                        <span className="km-route-item-distance">{route.routeLength} km</span>
+                      </div>
+                      {selectedRoutes.includes(route.routeId) && (
+                        <CheckCircle size={16} className="km-route-item-check" />
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+            
+            {/* Click outside to close dropdown */}
+            {showRoutesDropdown && (
+              <div className="km-routes-dropdown-backdrop" onClick={closeRoutesDropdown}></div>
             )}
           </div>
+          
           {selectedRoutes.length > 0 && (
             <div className="km-selection-summary">
               <span>Selected: {selectedRoutes.length} routes</span>
@@ -362,7 +472,7 @@ const KilometerMapCard = () => {
         {/* Generate Button */}
         <div className="km-actions">
           <button 
-            onClick={generateKilometerMap}
+            onClick={() => generateKilometerMap(false)}
             disabled={isGenerating || selectedRoutes.length === 0 || !selectedTemplate || !targetDistance}
             className="km-generate-btn"
           >
@@ -380,6 +490,43 @@ const KilometerMapCard = () => {
           </button>
         </div>
       </div>
+
+      {/* Missing Data Modal */}
+      {showMissingDataModal && (
+        <div className="km-modal-backdrop">
+          <div className="km-modal-content">
+            <div className="km-modal-header">
+              <h3>Missing Personal Information</h3>
+              <button onClick={closeMissingDataModal} className="km-modal-close">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="km-modal-body">
+              <div className="km-modal-warning">
+                <AlertCircle size={24} className="km-warning-icon" />
+                <p>The following personal information is missing and will not appear in your kilometer map:</p>
+              </div>
+              <ul className="km-missing-fields">
+                {missingFields.map(field => (
+                  <li key={field}>{field}</li>
+                ))}
+              </ul>
+              <p className="km-modal-question">Would you like to:</p>
+            </div>
+            <div className="km-modal-actions">
+              <button onClick={closeMissingDataModal} className="km-modal-btn km-cancel-btn">
+                Cancel
+              </button>
+              <button onClick={handleCreateAnyway} className="km-modal-btn km-create-anyway-btn">
+                Create Anyway
+              </button>
+              <button onClick={handleGoToProfile} className="km-modal-btn km-profile-btn">
+                Go to Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

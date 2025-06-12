@@ -23,6 +23,7 @@
     "@aws-sdk/lib-dynamodb": "^3.774.0",
     "busboy": "^1.6.0",
     "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
     "uuid": "^9.0.1",
     "xlsx-populate": "^1.21.0"
   },
